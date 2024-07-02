@@ -1,0 +1,12 @@
+{
+    "ID": "129ae526-b5c7-4ba5-9f94-d60dffd68b98",
+    "ActionKeyword": "ol",
+    "Name": "Ollama",
+    "Description": "Plugin to use Ollama for local LLMs in Flow Launcher",
+    "Author": "Gh0stExp10it",
+    "Version": "1.0.0",
+    "Language": "python",
+    "Website": "https://github.com/Gh0stExp10it/Flow.Launcher.Plugin.Ollama",
+    "IcoPath": "Images\\app.png",
+    "ExecuteFileName": "main.py"
+}
