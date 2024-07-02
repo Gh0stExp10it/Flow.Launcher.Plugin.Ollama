@@ -1,0 +1,30 @@
+body:
+  - type: input
+    attributes:
+      name: ollama_host
+      label: "Ollama Host:"
+      defaultValue: "http://localhost:11434"
+      description: URL of the local Ollama instance to communicate via API
+  - type: input
+    attributes:
+      name: ollama_model
+      label: "Model:"
+      defaultValue: "tinyllama:1.1b"
+      description: The LLM to be used (model library https://ollama.com/library)
+  - type: input
+    attributes:
+      name: prompt_stop
+      label: "Prompt stop:"
+      defaultValue: "||"
+      description: Characters to indicate end of prompt
+  - type: dropdown
+    attributes:
+      name: log_level
+      label: "Log Level:"
+      defaultValue: error
+      options:
+        - debug
+        - info
+        - warning
+        - error
+        - critical
