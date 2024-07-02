@@ -4,27 +4,33 @@ body:
       name: ollama_host
       label: "Ollama Host:"
       defaultValue: "http://localhost:11434"
-      description: URL of the local Ollama instance to communicate via API
+      description: "URL of the local Ollama instance to communicate via API. Default - http://localhost:11434"
   - type: input
     attributes:
       name: ollama_model
       label: "Model:"
       defaultValue: "tinyllama:1.1b"
-      description: The LLM to be used (model library https://ollama.com/library)
+      description: "The LLM to be used (model library https://ollama.com/library). Default - tinyllama:1.1b"
+  - type: checkbox
+    attributes:
+      name: pull_model
+      label: "Download Model"
+      description: "Download LLM automatically if not already installed?"
+      defaultValue: 'true'
   - type: input
     attributes:
       name: prompt_stop
       label: "Prompt stop:"
       defaultValue: "||"
-      description: Characters to indicate end of prompt
+      description: "Characters to indicate end of prompt. Default - ||"
   - type: dropdown
     attributes:
       name: log_level
       label: "Log Level:"
-      defaultValue: error
+      defaultValue: ERROR
       options:
-        - debug
-        - info
-        - warning
-        - error
-        - critical
+        - DEBUG
+        - INFO
+        - WARNING
+        - ERROR
+        - CRITICAL
