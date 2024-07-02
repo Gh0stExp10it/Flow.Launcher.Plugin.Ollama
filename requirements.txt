@@ -1,4 +1,4 @@
-flowlauncher==0.2.0
-Flox_lib==0.20.1
+pyflowlauncher==0.9.2
 requests==2.28.1
 ollama==0.2.1
+pyperclip==1.8.2
