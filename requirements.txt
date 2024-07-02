@@ -1,4 +1,3 @@
 flowlauncher==0.2.0
-flox==0.9.8
-Flox_lib==0.20.1
+Flox-lib==0.20.1
 ollama==0.2.1
