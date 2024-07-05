@@ -17,6 +17,12 @@ body:
       label: "Download Model"
       description: "Download LLM automatically if not already installed?"
       defaultValue: 'true'
+  - type: checkbox
+    attributes:
+      name: save_response
+      label: "Save response to file"
+      description: "Should the response be saved as a text file? This allows it to be opened directly in a text editor."
+      defaultValue: 'true'
   - type: input
     attributes:
       name: prompt_stop
