@@ -8,25 +8,25 @@ body:
   - type: input
     attributes:
       name: ollama_model
-      label: "Model:"
+      label: "Ollama Model:"
       defaultValue: "tinyllama:1.1b"
       description: "The LLM to be used (model library https://ollama.com/library). Default - tinyllama:1.1b"
   - type: checkbox
     attributes:
       name: pull_model
-      label: "Download Model"
+      label: "Automatic Model Download"
       description: "Download LLM automatically if not already installed?"
       defaultValue: 'false'
   - type: checkbox
     attributes:
       name: save_response
-      label: "Save response to file"
-      description: "Should the response be saved as a text file? This allows it to be opened directly in a text editor."
+      label: "Save Chat to File"
+      description: "Should the chat be saved as a text file? This allows it to be opened directly in a text editor."
       defaultValue: 'true'
   - type: input
     attributes:
       name: prompt_stop
-      label: "Prompt stop:"
+      label: "Prompt Stop:"
       defaultValue: "||"
       description: "Characters to indicate end of prompt. Default - ||"
   - type: dropdown
