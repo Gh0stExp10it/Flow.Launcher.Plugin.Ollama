@@ -1,9 +1,6 @@
 import logging
-import pyperclip
 import os
-import webbrowser
 from datetime import datetime, timedelta
-from typing import Optional
 from ollama import Client as OllamaClient, ResponseError as OllamaResponseError
 
 class Ollama:
@@ -110,16 +107,22 @@ class Ollama:
 
         return shortened_string
 
-    def clipboard_copy(self, response) -> None:
+    def save_file(self, query: str, response: str, timestamp: datetime, duration: int) -> str:
         """
-        Copies the provided response text to the clipboard.
+        Saves a chat conversation with timestamps to a text file.
+        Appends the new conversation to an existing file with the same name if it exists.
+        Raises a `PermissionError` exception if there's a permission issue while reading or writing the file.
 
         Args:
             * self (object): Reference to the current object instance.
-        """
-        pyperclip.copy(response)
+            * query (str): The user's query sent to the Ollama model.
+            * response (str): The response received from the Ollama model.
+            * timestamp (datetime): The timestamp of when the conversation occurred.
+            * duration (int): The total processing time of the request on the Ollama server in milliseconds.
 
-    def save_file(self, query: str, response: str, timestamp: datetime, duration: int) -> str:
+        Returns:
+            * absolute_filename (int): The absolute path of the saved file.
+        """
         formatted_query_timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S")
         formatted_filename_timestamp = timestamp.strftime("%Y-%m-%d_%H-%M-%S")
         
@@ -133,6 +136,7 @@ class Ollama:
         new_content = f"[{formatted_query_timestamp}] User: {query}\n[{formatted_response_timestamp}] Ollama: {response}\n\n"
         
         filename = f"Ollama_Chat_{formatted_filename_timestamp}.txt"
+        absolute_filename = os.path.abspath(filename)
         
         if os.path.exists(filename):
             try:
@@ -150,21 +154,30 @@ class Ollama:
                 file.write(new_content)
         except PermissionError:
             logging.error(PermissionError)
-            
-        return filename
+        
+        return absolute_filename
 
-    def open_file(self, filename: Optional[str], response: Optional[str]) -> None:
-        """
-        Open the response in the default text editor. If no filename is given,
-        the conversation will be written to a new text file and opened.
-        """
-        if filename:
-            webbrowser.open(filename)
-            return
+    # def clipboard_copy(self, response) -> None:
+    #     """
+    #     Copies the provided response text to the clipboard.
 
-        if response:
-            temp_file = "temp_text.txt"
-            with open(temp_file, "w", encoding="utf-8") as f:
-                f.write(response)
-            webbrowser.open(temp_file)
-            return
+    #     Args:
+    #         * self (object): Reference to the current object instance.
+    #     """
+    #     pyperclip.copy(response)
+    
+    # def open_file(self, filename: Optional[str], response: Optional[str]) -> None:
+    #     """
+    #     Open the response in the default text editor. If no filename is given,
+    #     the conversation will be written to a new text file and opened.
+    #     """
+    #     if filename:
+    #         webbrowser.open(filename)
+    #         return
+
+    #     if response:
+    #         temp_file = "temp_text.txt"
+    #         with open(temp_file, "w", encoding="utf-8") as f:
+    #             f.write(response)
+    #         webbrowser.open(temp_file)
+    #         return

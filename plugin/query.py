@@ -34,7 +34,7 @@ class Query(Method):
                         
                         title_clipboard = f"Copy Response to Clipboard"
                         message_clipboard = f"{ollama_client.shorten(string=chat_response, length=30)}"
-                        json_rpc_action_clipboard = ollama_client.clipboard_copy(response=chat_response)
+                        json_rpc_action_clipboard = API.copy_to_clipboard(text=chat_response)
                     else:
                         title_clipboard = f"ERROR"
                         json_rpc_action_clipboard = API.open_url(self.plugin.manifest().get("Website"))
@@ -45,10 +45,15 @@ class Query(Method):
                             message_clipboard = f"Error: The specified model <{self.ollama_model}> does not exist and could not be pulled automatically - please check your configuration!"
                     
                     if self.save_response and chat_response and chat_duration:
-                        filename = ollama_client.save_file(query=query, response=chat_response, timestamp=timestamp, duration=chat_duration)
-                        title_file = f"Open Query & Response in Editor"
+                        absolute_filename = ollama_client.save_file(query=query,
+                                                                    response=chat_response,
+                                                                    timestamp=timestamp,
+                                                                    duration=chat_duration)
+                        
+                        title_file = f"Open Chat in Editor"
                         message_file = f"Just select the Entry, file will be opened automatically"
-                        json_rpc_action_file = ollama_client.open_file(filename=filename, response=chat_response)
+                        json_rpc_action_file = API.shell_run(command=f"start {absolute_filename}",
+                                                             filename= "cmd.exe")
                     else:
                         title_file = f"ERROR"
                         message_file = f"Error: Can't write and open file - please check your configuration!"
