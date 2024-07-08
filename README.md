@@ -50,6 +50,7 @@ To be able to communicate with a local LLM and use this plugin, you need a runni
 ## Settings
 |Setting|Default|Description|
 |---|---|---|
+|Action keyword|ol|Keyword to activate plugin.|
 |Ollama Host|http://localhost:11434|URL of the local Ollama instance to communicate via API.|
 |Ollama Model|tinyllama:1.1b|The LLM to be used ([Ollama model library](https://ollama.com/library)).|
 |Automatic Model Download|[ ] - *false*|Download LLM automatically if not already installed.<br>*Be careful - the download may take some time and storage on your disk*.|
