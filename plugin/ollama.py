@@ -156,28 +156,3 @@ class Ollama:
             logging.error(PermissionError)
         
         return absolute_filename
-
-    # def clipboard_copy(self, response) -> None:
-    #     """
-    #     Copies the provided response text to the clipboard.
-
-    #     Args:
-    #         * self (object): Reference to the current object instance.
-    #     """
-    #     pyperclip.copy(response)
-    
-    # def open_file(self, filename: Optional[str], response: Optional[str]) -> None:
-    #     """
-    #     Open the response in the default text editor. If no filename is given,
-    #     the conversation will be written to a new text file and opened.
-    #     """
-    #     if filename:
-    #         webbrowser.open(filename)
-    #         return
-
-    #     if response:
-    #         temp_file = "temp_text.txt"
-    #         with open(temp_file, "w", encoding="utf-8") as f:
-    #             f.write(response)
-    #         webbrowser.open(temp_file)
-    #         return
