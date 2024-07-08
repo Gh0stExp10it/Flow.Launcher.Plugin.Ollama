@@ -52,7 +52,7 @@ To be able to communicate with a local LLM and use this plugin, you need a runni
 |---|---|---|
 |Ollama Host|http://localhost:11434|URL of the local Ollama instance to communicate via API.|
 |Ollama Model|tinyllama:1.1b|The LLM to be used ([Ollama model library](https://ollama.com/library)).|
-|Automatic Model Download|[ ] *(false)*|Download LLM automatically if not already installed.<br>*Be careful - the download may take some time and storage on your disk*.|
-|Save Chat to File|[x] *(true)*|Should the chat be saved as a text file? This allows it to be opened directly in a text editor.|
+|Automatic Model Download|[ ] - *false*|Download LLM automatically if not already installed.<br>*Be careful - the download may take some time and storage on your disk*.|
+|Save Chat to File|[x] - *true*|Should the chat be saved as a text file? This allows it to be opened directly in a text editor.|
 |Prompt Stop|&#124;&#124;|Characters to indicate end of prompt. This saves computing time, as otherwise the LLM is executed every time a key is pressed.|
 |Log Level|ERROR|The Log Level can be adjusted for error analysis. Normally not of interest for users.|
