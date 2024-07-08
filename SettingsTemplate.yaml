@@ -16,7 +16,7 @@ body:
       name: pull_model
       label: "Download Model"
       description: "Download LLM automatically if not already installed?"
-      defaultValue: 'true'
+      defaultValue: 'false'
   - type: checkbox
     attributes:
       name: save_response
