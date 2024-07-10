@@ -9,8 +9,8 @@ body:
     attributes:
       name: ollama_model
       label: "Ollama Model:"
-      defaultValue: "tinyllama:1.1b"
-      description: "The LLM to be used (model library https://ollama.com/library). Default - tinyllama:1.1b"
+      defaultValue: "gemma:2b"
+      description: "The LLM to be used (model library https://ollama.com/library). Default - gemma:2b"
   - type: checkbox
     attributes:
       name: pull_model
