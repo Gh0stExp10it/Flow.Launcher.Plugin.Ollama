@@ -9,20 +9,32 @@ body:
     attributes:
       name: ollama_model
       label: "Ollama Model:"
-      defaultValue: "gemma:2b"
-      description: "The LLM to be used (model library https://ollama.com/library). Default - gemma:2b"
+      defaultValue: "llama3.2:1b"
+      description: "The LLM to be used (model library https://ollama.com/library). Default - llama3.2:1b"
   - type: checkbox
     attributes:
       name: pull_model
-      label: "Automatic Model Download"
+      label: "Automatic Model Download:"
       description: "Download LLM automatically if not already installed?"
       defaultValue: 'false'
   - type: checkbox
     attributes:
       name: save_response
-      label: "Save Chat to File"
+      label: "Save Chat to File:"
       description: "Should the chat be saved as a text file? This allows it to be opened directly in a text editor."
       defaultValue: 'true'
+  - type: checkbox
+    attributes:
+      name: preserve_newline
+      label: "Chat preview preserve newline:"
+      description: "Should the chat preview retain the line breaks or output them as continuous text. \nIf true, the heading 'Copy Response to Clipboard' can be moved outside the visible area. However the text is still always copied to the clipboard with the correct formatting."
+      defaultValue: 'false'
+  - type: input
+    attributes:
+      name: response_preview_length
+      label: "Chat preview length:"
+      defaultValue: "100"
+      description: "Length of the chat preview, freely selectable. Default - 100 characters"
   - type: input
     attributes:
       name: prompt_stop

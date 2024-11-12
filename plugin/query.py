@@ -14,6 +14,8 @@ class Query(Method):
         self.prompt_stop = self.plugin.settings.get("prompt_stop")
         self.save_response = self.plugin.settings.get("save_response")
         self.log_level = self.plugin.settings.get("log_level")
+        self.preserve_newline = self.plugin.settings.get("preserve_newline")
+        self.response_preview_length = self.plugin.settings.get("response_preview_length")
 
         if self.log_level:
             self.plugin._logger.setLevel(self.log_level)
@@ -33,7 +35,7 @@ class Query(Method):
                         chat_response, chat_duration = ollama_client.chat(query=query[:-len(self.prompt_stop)])
                         
                         title_clipboard = f"Copy Response to Clipboard"
-                        message_clipboard = f"{ollama_client.shorten(string=chat_response, length=30)}"
+                        message_clipboard = f"{ollama_client.shorten(string=chat_response, length=int(self.response_preview_length), preserve_newline=self.preserve_newline)}"
                         json_rpc_action_clipboard = API.copy_to_clipboard(text=chat_response)
                     else:
                         title_clipboard = f"ERROR"
@@ -55,7 +57,7 @@ class Query(Method):
                         json_rpc_action_file = API.shell_run(command=f"start {absolute_filename}",
                                                              filename= "cmd.exe")
                     else:
-                        title_file = f"ERROR"
+                        title_file = f"Open Chat in Editor [DISABLED]"
                         message_file = f"Error: Can't write and open file - please check your configuration!"
                         json_rpc_action_file = API.open_url(self.plugin.manifest().get("Website"))
                     

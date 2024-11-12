@@ -67,7 +67,7 @@ class Ollama:
 
         Args:
             * self (object): Reference to the current object instance.
-            * message (str, optional): The message to send to the model. Defaults to "Whats 1 plus 1?".
+            * query (str, optional): The message to send to the model. Defaults to "Whats 1 plus 1?".
 
         Returns:
             * str: The response content from the model, or None if an error occurs.
@@ -86,26 +86,28 @@ class Ollama:
         except OllamaResponseError as e:
                 logging.error(f"Error: <{e.status_code}> - {e.error}")
 
-    def shorten(self, string: str, length: int):
+    def shorten(self, string: str, length: int, preserve_newline: bool = False) -> str:
         """
-        Shortens a string and adds an ellipsis (...) if it exceeds a specified length.
+        Shortens a string and appends "..." if it exceeds a specified length.
+        Provides an option to preserve or replace newlines with spaces.
 
         Args:
             * self (object): Reference to the current object instance.
-            * string: The string to be shortened.
-            * length: The maximum desired length of the output string.
+            * string (str): The string to be shortened.
+            * length (int): The maximum desired length of the output string.
+            * preserve_newlines (bool): If True, preserves newlines. If False, replaces them with spaces.
 
         Returns:
-            * str: The shortened string with an ellipsis
+            str: The shortened string with "...".
         """
-        string = string.split("\n", 1)[0]
+
+        if not preserve_newline:
+            string = string.replace("\n", " ")
 
         if len(string) > length:
-            shortened_string = string[:length - 3] + "..."
+            return string[:length - 3] + "..."
         else:
-            shortened_string = string
-
-        return shortened_string
+            return string
 
     def save_file(self, query: str, response: str, timestamp: datetime, duration: int) -> str:
         """
