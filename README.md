@@ -52,8 +52,10 @@ To be able to communicate with a local LLM and use this plugin, you need a runni
 |---|---|---|
 |Action keyword|ol|Keyword to activate the plugin.|
 |Ollama Host|http://localhost:11434|URL of the local Ollama instance to communicate via API.|
-|Ollama Model|gemma:2b|The LLM to be used ([Ollama model library](https://ollama.com/library)).|
+|Ollama Model|llama3.2:1b|The LLM to be used ([Ollama model library](https://ollama.com/library)).|
 |Automatic Model Download|[ ] - *false*|Download LLM automatically if not already installed.<br>*Be careful - the download may take some time and storage on your disk*.|
 |Save Chat to File|[x] - *true*|Should the chat be saved as a text file? This allows it to be opened directly in a text editor.|
+|Chat preview preserve newline|[ ] - *false*|Should the chat preview retain the line breaks or output them as continuous text.<br>If true, the heading 'Copy Response to Clipboard' can be moved outside the visible area. However the text is still always copied to the clipboard with the correct formatting.|
+|Chat preview length|100|Length of the chat preview, freely selectable.|
 |Prompt Stop|&#124;&#124;|Characters to indicate end of prompt. This saves computing time, as otherwise the LLM is executed every time a key is pressed.|
 |Log Level|ERROR|The Log Level can be adjusted for error analysis. Normally not of interest for users.|
