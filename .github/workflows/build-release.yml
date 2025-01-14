@@ -9,7 +9,7 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: windowss-latest
     env:
       python_ver: 3.10
 
@@ -29,8 +29,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r ./requirements.txt -t ./lib
-          zip -r Flow.Launcher.Plugin.Ollama.zip . -x '*.git*'
+          pip install -r .\requirements.txt -t .\lib\
+          Compress-Archive -Path (Get-ChildItem -Path . -Exclude ".git") -DestinationPath Flow.Launcher.Plugin.Ollama.zip
       - name: Publish
         if: success()
         uses: softprops/action-gh-release@v2
