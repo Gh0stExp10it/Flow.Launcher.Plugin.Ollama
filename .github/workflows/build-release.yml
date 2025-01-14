@@ -28,12 +28,15 @@ jobs:
       - run: echo ${{steps.version.outputs.prop}} 
       - name: Install dependencies
         run: |
+          # Update pip
           python -m pip install --upgrade pip
-           pip install -r requirements.txt \
+          # Purge pip cache for clean platform change
+          pip cache purge
+          # Install requirements with windows platform dependency
+          pip install -r requirements.txt \
             --platform win_amd64 \
             --target ./lib \
-            --only-binary=:all: \
-            --no-deps
+            --only-binary=:all:
           zip -r Flow.Launcher.Plugin.Ollama.zip . -x '*.git*'
       - name: Publish
         if: success()
