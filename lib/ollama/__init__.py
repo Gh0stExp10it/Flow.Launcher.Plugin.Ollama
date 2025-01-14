@@ -1,10 +1,18 @@
 from ollama._client import Client, AsyncClient
 from ollama._types import (
+  Options,
+  Message,
+  Image,
+  Tool,
   GenerateResponse,
   ChatResponse,
+  EmbedResponse,
+  EmbeddingsResponse,
+  StatusResponse,
   ProgressResponse,
-  Message,
-  Options,
+  ListResponse,
+  ShowResponse,
+  ProcessResponse,
   RequestError,
   ResponseError,
 )
@@ -12,30 +20,28 @@ from ollama._types import (
 __all__ = [
   'Client',
   'AsyncClient',
+  'Options',
+  'Message',
+  'Image',
+  'Tool',
   'GenerateResponse',
   'ChatResponse',
+  'EmbedResponse',
+  'EmbeddingsResponse',
+  'StatusResponse',
   'ProgressResponse',
-  'Message',
-  'Options',
+  'ListResponse',
+  'ShowResponse',
+  'ProcessResponse',
   'RequestError',
   'ResponseError',
-  'generate',
-  'chat',
-  'embeddings',
-  'pull',
-  'push',
-  'create',
-  'delete',
-  'list',
-  'copy',
-  'show',
-  'ps',
 ]
 
 _client = Client()
 
 generate = _client.generate
 chat = _client.chat
+embed = _client.embed
 embeddings = _client.embeddings
 pull = _client.pull
 push = _client.push
