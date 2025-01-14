@@ -29,8 +29,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r .\requirements.txt --platform win_amd64 --target .\lib\ --only-binary=:all:
-          Compress-Archive -Path (Get-ChildItem -Path . -Exclude ".git") -DestinationPath Flow.Launcher.Plugin.Ollama.zip
+          pip install -r .\requirements.txt --platform win_amd64 --target .\lib --only-binary=:all: --no-deps
+          $Items = Get-ChildItem -Recurse -File -Exclude '.git*'
+          Compress-Archive -Path $Items -DestinationPath Flow.Launcher.Plugin.Ollama.zip
       - name: Publish
         if: success()
         uses: softprops/action-gh-release@v2
