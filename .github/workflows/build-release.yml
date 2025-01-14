@@ -37,6 +37,7 @@ jobs:
             --platform win_amd64 \
             --target ./lib \
             --only-binary=:all:
+          # Zip localized libraries and dependencies
           zip -r Flow.Launcher.Plugin.Ollama.zip . -x '*.git*'
       - name: Publish
         if: success()
