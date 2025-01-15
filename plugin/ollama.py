@@ -25,7 +25,7 @@ class Ollama:
             * self (object): Reference to the current object instance.
         """
         if not self.initialized:
-            # Initialize connection to InfluxDB
+            # Initialize
             self.ollama_client = OllamaClient(host=self.ollama_host)
             self.initialized = True
             logging.info("Ollama-Client initialized.")
@@ -67,7 +67,7 @@ class Ollama:
 
         Args:
             * self (object): Reference to the current object instance.
-            * query (str, optional): The message to send to the model. Defaults to "Whats 1 plus 1?".
+            * query (str, optional): The message to send to the model.
 
         Returns:
             * str: The response content from the model, or None if an error occurs.
