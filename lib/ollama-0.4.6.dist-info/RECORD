@@ -1,0 +1,15 @@
+ollama-0.4.6.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+ollama-0.4.6.dist-info/LICENSE,sha256=WTTtLODRUVS825yFIDIQq6wNpDFK80CB4230WZ-QsiY,1058
+ollama-0.4.6.dist-info/METADATA,sha256=GW-KMspQr4QouRF788ZVLmCR_rgXAivtYLPLkrFx3hY,4723
+ollama-0.4.6.dist-info/RECORD,,
+ollama-0.4.6.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+ollama-0.4.6.dist-info/WHEEL,sha256=IYZQI976HJqqOpQU6PHkJ8fb3tMNBFjg-Cn-pwAbaFM,88
+ollama/__init__.py,sha256=uM3O8N2qRU4XOtZf6pCut5aRggJWXI5fSdKv8jHEnGI,910
+ollama/__pycache__/__init__.cpython-310.pyc,,
+ollama/__pycache__/_client.cpython-310.pyc,,
+ollama/__pycache__/_types.cpython-310.pyc,,
+ollama/__pycache__/_utils.cpython-310.pyc,,
+ollama/_client.py,sha256=qQRa3xQM5ZftT2rx1e_j2nigyqN0qh-PhX069vwrCTc,33897
+ollama/_types.py,sha256=KBaafF65hThhyiWS_JAZvnRFtAgDYVX6RMcli5_VyHM,13687
+ollama/_utils.py,sha256=T3bXkrusFgC-blJHNx3N6SxQtlqzyJiKpI6uqkr903U,2750
+ollama/py.typed,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
