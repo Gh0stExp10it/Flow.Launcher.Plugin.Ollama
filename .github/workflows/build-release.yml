@@ -26,7 +26,7 @@ jobs:
           path: 'plugin.json'
           prop_path: 'Version'
       - run: echo ${{steps.version.outputs.prop}} 
-      - name: Install dependencies
+      - name: Install libraries and dependencies
         run: |
           # Update pip
           python -m pip install --upgrade pip

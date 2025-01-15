@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from ollama import Client as OllamaClient, ResponseError as OllamaResponseError
+from ollama import Client as OllamaClient, ChatResponse as OllamaChatResponse, ResponseError as OllamaResponseError
 
 class Ollama:
     def __init__(self, ollama_host, ollama_model):
@@ -73,18 +73,23 @@ class Ollama:
             * str: The response content from the model, or None if an error occurs.
         """
         try:
-            response = self.ollama_client.chat(model=self.ollama_model,
-                                               messages=[
-                                                   {
-                                                       "role": "user",
-                                                       "content": query,
-                                                    },
-                                                ])
+            response: OllamaChatResponse = self.ollama_client.chat(model=self.ollama_model,
+                                                                   messages=[
+                                                                       {
+                                                                           "role": "user",
+                                                                           "content": query,
+                                                                        },
+                                                                    ])
 
-            if isinstance(response, dict):
-                return response["message"]["content"], response["total_duration"]
+            if response and response.message:
+                return response.message.content, response.total_duration
+            else:
+                logging.error(f"Invalid response from the Ollama-Server: {response}")
+                return "", 0
         except OllamaResponseError as e:
-                logging.error(f"Error: <{e.status_code}> - {e.error}")
+            logging.error(f"Ollama Response Error: <{e.status_code}> - {e.error}")
+        except Exception as e:
+            logging.error(f"Ollama Unexpected Error: {e}")
 
     def shorten(self, string: str, length: int, preserve_newline: bool = False) -> str:
         """
