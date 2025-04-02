@@ -62,7 +62,7 @@ class Ollama:
             else:
                 return False
     
-    def chat(self, query: str, enable_cot: bool = True) -> tuple[str, int]:
+    def chat(self, query: str) -> tuple[str, int]:
         """
         Sends the requested chat message to the Ollama model and retrieves the response.
 
