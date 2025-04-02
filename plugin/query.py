@@ -16,6 +16,7 @@ class Query(Method):
         self.log_level = self.plugin.settings.get("log_level")
         self.preserve_newline = self.plugin.settings.get("preserve_newline")
         self.response_preview_length = self.plugin.settings.get("response_preview_length")
+        self.enable_cot = self.plugin.settings.get("enable_cot")
 
         if self.log_level:
             self.plugin._logger.setLevel(self.log_level)
@@ -33,6 +34,9 @@ class Query(Method):
                     if model_exists:                      
                         # Send query to Ollama and ensure that the prompt_stop characters are removed
                         chat_response, chat_duration = ollama_client.chat(query=query[:-len(self.prompt_stop)])
+                        
+                        if not self.enable_cot:
+                            chat_response = ollama_client.remove_cot(string=chat_response)
                         
                         title_clipboard = f"Copy Response to Clipboard"
                         message_clipboard = f"{ollama_client.shorten(string=chat_response, length=int(self.response_preview_length), preserve_newline=self.preserve_newline)}"
