@@ -25,6 +25,12 @@ body:
       defaultValue: 'true'
   - type: checkbox
     attributes:
+      name: enable_cot
+      label: "Enable CoT (Chain-of-Thought):"
+      description: "Enable or disable the Chain-of-Thought reasoning for supported models (e.g. DeepSeek-R1). \nDisabling this option will remove the <think> tag and suppress intermediate reasoning steps."
+      defaultValue: 'true'
+  - type: checkbox
+    attributes:
       name: preserve_newline
       label: "Chat preview preserve newline:"
       description: "Should the chat preview retain the line breaks or output them as continuous text. \nIf true, the heading 'Copy Response to Clipboard' can be moved outside the visible area. However the text is still always copied to the clipboard with the correct formatting."

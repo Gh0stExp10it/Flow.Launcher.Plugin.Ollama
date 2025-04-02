@@ -1,5 +1,5 @@
 # Flow Launcher Plugin - Ollama
-This Flow Launcher Plugin allows you to interact with a local Ollama instance and your favorite and private LLMs (e.g. Llama 3, Gemma 2, Phi-3, TinyLlama, ...). It provides a convenient way to access the power of these language models directly from Flow Launcher.
+This Flow Launcher Plugin allows you to interact with a local Ollama instance and your favorite and private LLMs (e.g. Llama 3, Gemma 3, Phi-4, DeepSeek-R1, TinyLlama, ...). It provides a convenient way to access the power of these language models directly from Flow Launcher.
 The plugin offers two interaction options, copying the answer directly to the clipboard and writing the conversation (question + response) to a text file, which can be opened directly via the plugin.
 
 ![Plugin Example](./Images/plugin-example.gif)
@@ -55,6 +55,7 @@ To be able to communicate with a local LLM and use this plugin, you need a runni
 |Ollama Model|llama3.2:1b|The LLM to be used ([Ollama model library](https://ollama.com/library)).|
 |Automatic Model Download|[ ] - *false*|Download LLM automatically if not already installed.<br>*Be careful - the download may take some time and storage on your disk*.|
 |Save Chat to File|[x] - *true*|Should the chat be saved as a text file? This allows it to be opened directly in a text editor.|
+|Enable CoT (Chain-of-Thought)|[x] - *true*|Enable or disable the Chain-of-Thought reasoning for supported models (e.g. DeepSeek-R1).<br>Disabling this option will remove the \<think> tag and suppress intermediate reasoning steps.|
 |Chat preview preserve newline|[ ] - *false*|Should the chat preview retain the line breaks or output them as continuous text.<br>If true, the heading 'Copy Response to Clipboard' can be moved outside the visible area. However the text is still always copied to the clipboard with the correct formatting. [View an example](#example)|
 |Chat preview length|100|Length of the chat preview, freely selectable. [View an example](#example)|
 |Prompt Stop|&#124;&#124;|Characters to indicate end of prompt. This saves computing time, as otherwise the LLM is executed every time a key is pressed.|

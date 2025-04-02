@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from datetime import datetime, timedelta
 from ollama import Client as OllamaClient, ChatResponse as OllamaChatResponse, ResponseError as OllamaResponseError
 
@@ -29,7 +30,7 @@ class Ollama:
             self.ollama_client = OllamaClient(host=self.ollama_host)
             self.initialized = True
             logging.info("Ollama-Client initialized.")
-        
+
     def check_model(self, pull_model: bool) -> bool:
         """
         Checks if the specified Ollama model exists and attempts to download it if not.
@@ -61,7 +62,7 @@ class Ollama:
             else:
                 return False
     
-    def chat(self, query: str) -> tuple[str, int]:
+    def chat(self, query: str, enable_cot: bool = True) -> tuple[str, int]:
         """
         Sends the requested chat message to the Ollama model and retrieves the response.
 
@@ -163,3 +164,26 @@ class Ollama:
             logging.error(PermissionError)
         
         return absolute_filename
+    
+    def remove_cot(self, string: str) -> str:
+        """
+        Removes the CoT (Chain-of-Thought) reasoning for supported models in post-processing.
+        This option will remove the <think> tag and suppress intermediate reasoning steps.
+
+        Args:
+            * self (object): Reference to the current object instance.
+            * string (str): The string/response with CoT to be cleaned.
+
+        Returns:
+            str: The cleaned string/response withouth CoT.
+        """
+
+        # Regex pattern: Match <think> and </think> including content and ensures that '.' matches newlines as well
+        if "<think>" in string and "</think>" in string:
+            string = re.sub(pattern=r"<think>.*?</think>",
+                            repl="",
+                            string=string,
+                            flags=re.DOTALL
+                        ).strip()
+        
+        return string
