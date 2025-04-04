@@ -5,7 +5,9 @@ The plugin offers two interaction options, copying the answer directly to the cl
 ![Plugin Example](./Images/plugin-example.gif)
 
 ## Prerequisites
-To be able to communicate with a local LLM and use this plugin, you need a running Ollama instance (server). There are two different installation variants here, which you can also select depending on the underlying OS:
+The Ollama plugin requires Python 3.9 or later. Official support for Python 3.8 ended with release v1.1.2. The plugin has been tested and verified with Python versions between 3.9 and 3.13.
+
+To interact with a local LLM (Large Language Model) and use this plugin, an Ollama instance (server) must be running. There are two different installation variants here, which you can also select depending on the underlying OS:
 1. Installation via Docker (OS independent)
     - Go to [Install Docker Engine](https://docs.docker.com/engine/install/) and follow the installation instructions
     - Pull the [Ollama Image](https://hub.docker.com/r/ollama/ollama) and start the Container
