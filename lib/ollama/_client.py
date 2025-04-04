@@ -1,15 +1,17 @@
-import os
-import json
-import platform
 import ipaddress
+import json
+import os
+import platform
+import sys
 import urllib.parse
+from hashlib import sha256
 from os import PathLike
 from pathlib import Path
-from hashlib import sha256
-
 from typing import (
   Any,
   Callable,
+  Dict,
+  List,
   Literal,
   Mapping,
   Optional,
@@ -18,21 +20,16 @@ from typing import (
   TypeVar,
   Union,
   overload,
-  Dict,
-  List,
 )
 
-import sys
-
 from pydantic.json_schema import JsonSchemaValue
-
 
 from ollama._utils import convert_function_to_tool
 
 if sys.version_info < (3, 9):
-  from typing import Iterator, AsyncIterator
+  from typing import AsyncIterator, Iterator
 else:
-  from collections.abc import Iterator, AsyncIterator
+  from collections.abc import AsyncIterator, Iterator
 
 from importlib import metadata
 
@@ -46,13 +43,13 @@ import httpx
 from ollama._types import (
   ChatRequest,
   ChatResponse,
-  CreateRequest,
   CopyRequest,
+  CreateRequest,
   DeleteRequest,
-  EmbedRequest,
-  EmbedResponse,
   EmbeddingsRequest,
   EmbeddingsResponse,
+  EmbedRequest,
+  EmbedResponse,
   GenerateRequest,
   GenerateResponse,
   Image,
@@ -69,7 +66,6 @@ from ollama._types import (
   StatusResponse,
   Tool,
 )
-
 
 T = TypeVar('T')
 
@@ -110,17 +106,22 @@ class BaseClient:
     )
 
 
+CONNECTION_ERROR_MESSAGE = 'Failed to connect to Ollama. Please check that Ollama is downloaded, running and accessible. https://ollama.com/download'
+
+
 class Client(BaseClient):
   def __init__(self, host: Optional[str] = None, **kwargs) -> None:
     super().__init__(httpx.Client, host, **kwargs)
 
   def _request_raw(self, *args, **kwargs):
-    r = self._client.request(*args, **kwargs)
     try:
+      r = self._client.request(*args, **kwargs)
       r.raise_for_status()
+      return r
     except httpx.HTTPStatusError as e:
       raise ResponseError(e.response.text, e.response.status_code) from None
-    return r
+    except httpx.ConnectError:
+      raise ConnectionError(CONNECTION_ERROR_MESSAGE) from None
 
   @overload
   def _request(
@@ -558,7 +559,7 @@ class Client(BaseClient):
     digest = f'sha256:{sha256sum.hexdigest()}'
 
     with open(path, 'rb') as r:
-      self._request_raw('POST', f'/api/blobs/sha256:{digest}', content=r)
+      self._request_raw('POST', f'/api/blobs/{digest}', content=r)
 
     return digest
 
@@ -617,12 +618,14 @@ class AsyncClient(BaseClient):
     super().__init__(httpx.AsyncClient, host, **kwargs)
 
   async def _request_raw(self, *args, **kwargs):
-    r = await self._client.request(*args, **kwargs)
     try:
+      r = await self._client.request(*args, **kwargs)
       r.raise_for_status()
+      return r
     except httpx.HTTPStatusError as e:
       raise ResponseError(e.response.text, e.response.status_code) from None
-    return r
+    except httpx.ConnectError:
+      raise ConnectionError(CONNECTION_ERROR_MESSAGE) from None
 
   @overload
   async def _request(

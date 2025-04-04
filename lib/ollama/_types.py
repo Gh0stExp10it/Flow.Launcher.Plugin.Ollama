@@ -1,11 +1,8 @@
 import json
 from base64 import b64decode, b64encode
-from pathlib import Path
 from datetime import datetime
-from typing import Any, Mapping, Optional, Union, Sequence, Dict, List
-
-from pydantic.json_schema import JsonSchemaValue
-from typing_extensions import Annotated, Literal
+from pathlib import Path
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from pydantic import (
   BaseModel,
@@ -14,6 +11,8 @@ from pydantic import (
   Field,
   model_serializer,
 )
+from pydantic.json_schema import JsonSchemaValue
+from typing_extensions import Annotated, Literal
 
 
 class SubscriptableBaseModel(BaseModel):
@@ -536,3 +535,6 @@ class ResponseError(Exception):
 
     self.status_code = status_code
     'HTTP status code of the response.'
+
+  def __str__(self) -> str:
+    return f'{self.error} (status code: {self.status_code})'
