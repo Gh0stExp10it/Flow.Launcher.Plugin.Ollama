@@ -16,7 +16,7 @@ from warnings import warn
 import annotated_types
 import typing_extensions
 from pydantic_core import PydanticUndefined
-from typing_extensions import TypeAlias, Unpack, deprecated
+from typing_extensions import Self, TypeAlias, Unpack, deprecated
 from typing_inspection import typing_objects
 from typing_inspection.introspection import UNKNOWN, AnnotationSource, ForbiddenQualifier, Qualifier, inspect_annotation
 
@@ -349,7 +349,7 @@ class FieldInfo(_repr.Representation):
         field_info_annotations = [a for a in metadata if isinstance(a, FieldInfo)]
         field_info = FieldInfo.merge_field_infos(*field_info_annotations, annotation=type_expr)
 
-        new_field_info = copy(field_info)
+        new_field_info = field_info._copy()
         new_field_info.annotation = type_expr
         new_field_info.frozen = final or field_info.frozen
         field_metadata: list[Any] = []
@@ -418,6 +418,10 @@ class FieldInfo(_repr.Representation):
 
         if isinstance(default, FieldInfo):
             # e.g. `field: int = Field(...)`
+            default_metadata = default.metadata.copy()
+            default = copy(default)
+            default.metadata = default_metadata
+
             default.annotation = type_expr
             default.metadata += metadata
             merged_default = FieldInfo.merge_field_infos(
@@ -478,7 +482,7 @@ class FieldInfo(_repr.Representation):
         """
         if len(field_infos) == 1:
             # No merging necessary, but we still need to make a copy and apply the overrides
-            field_info = copy(field_infos[0])
+            field_info = field_infos[0]._copy()
             field_info._attributes_set.update(overrides)
 
             default_override = overrides.pop('default', PydanticUndefined)
@@ -588,6 +592,15 @@ class FieldInfo(_repr.Representation):
             metadata.append(_fields.pydantic_general_metadata(**general_metadata))
         return metadata
 
+    def _copy(self) -> Self:
+        copied = copy(self)
+        for attr_name in ('metadata', '_attributes_set', '_qualifiers'):
+            # Apply "deep-copy" behavior on collections attributes:
+            value = getattr(copied, attr_name).copy()
+            setattr(copied, attr_name, value)
+
+        return copied
+
     @property
     def deprecation_message(self) -> str | None:
         """The deprecation message to be emitted, or `None` if not set."""
@@ -692,8 +705,12 @@ class FieldInfo(_repr.Representation):
             pydantic._internal._generics.replace_types is used for replacing the typevars with
                 their concrete types.
         """
-        annotation, _ = _typing_extra.try_eval_type(self.annotation, globalns, localns)
-        self.annotation = _generics.replace_types(annotation, typevars_map)
+        annotation = _generics.replace_types(self.annotation, typevars_map)
+        annotation, evaluated = _typing_extra.try_eval_type(annotation, globalns, localns)
+        self.annotation = annotation
+        if not evaluated:
+            self._complete = False
+            self._original_annotation = self.annotation
 
     def __repr_args__(self) -> ReprArgs:
         yield 'annotation', _repr.PlainRepr(_repr.display_as_type(self.annotation))

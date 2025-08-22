@@ -4,21 +4,64 @@
 #####################################
 # Declare Variables
 WORK_DIR=$(realpath "$0" | sed 's|\(.*\)/.*|\1|')
-TMP_DIR="tmp_dir"
+TEMP_DIR_PIP_INSTALL="temp_dir_pip_install_$$"
+TEMP_DIR_PYDANTIC="temp_dir_pydanitc_$$"
+REQUIREMENTS_FILE="requirements.txt"
 COUNT=0
-# Change the Pydantic-Core Version as needed
-PYDANTIC_VERSION="2.33.1"
-PYDANTIC_CORE_BASE_URL="https://pypi.org/project/pydantic-core/$PYDANTIC_VERSION/#files"
-# Extract py-ver specific wheels automatically (Windows/x64 only)
-#  e.g. "https://files.pythonhosted.org/packages/4f/53/a31aaa220ac133f05e4e3622f65ad9b02e6cbd89723d8d035f5effac8701/pydantic_core-2.33.0-cp39-cp39-win_amd64.whl"
-PYDANTIC_CORE_FILE_URLS=($(curl -s "$PYDANTIC_CORE_BASE_URL" | \
-                            grep -oE 'https://files\.pythonhosted\.org/packages/[^"]+' | \
-                            grep -E "cp(39|310|311|312|313)-cp\1-win_amd64\.whl" | \
-                            sort -u))
-
 # Change in working directory
 echo "=> Working Directory: $WORK_DIR"
 cd $WORK_DIR
+# Ensure that the temp-dirs are always deleted
+trap 'echo "=> Cleanup temp-dirs..." ; rm -rf "$TEMP_DIR_PIP_INSTALL" ; rm -rf "$TEMP_DIR_PYDANTIC"' EXIT
+# Check if <jq> is installed and exit if not
+if ! command -v jq &> /dev/null; then
+    echo "Error: <jq> is not installed. Please install it (e.g., 'sudo apt-get install jq')."
+    exit 1
+fi
+
+# --- STEP 1: TEMP INSTALL PY-OLLAMA & EXTRACT DEPENDENT PYDANTIC-CORE VERSION ---
+# Read the requirements to get the ollama version
+OLLAMA_VERSION=$(grep '^ollama==' "../$REQUIREMENTS_FILE" | awk -F'==' '{print $2}')
+if [ -z "$OLLAMA_VERSION" ]; then
+    echo "Error: Could not find line for 'ollama==' in '$REQUIREMENTS_FILE'."
+    exit 1
+else
+    echo "=> Ollama-Version: $OLLAMA_VERSION"
+fi
+
+echo "=> Create temp-dir: $TEMP_DIR_PIP_INSTALL"
+mkdir -p "$TEMP_DIR_PIP_INSTALL"
+
+echo "=> Install ollama==$OLLAMA_VERSION and its dependencies to $TEMP_DIR_PIP_INSTALL"
+pip install "ollama==$OLLAMA_VERSION" \
+    --target "$TEMP_DIR_PIP_INSTALL" \
+    --quiet
+
+if [ $? -ne 0 ]; then
+    echo "Error: The pip installation failed."
+    exit 1
+fi
+
+echo "=> Read the Pydantic-Core Version from the file system..."
+DIST_INFO_DIR=$(ls "$TEMP_DIR_PIP_INSTALL" | grep 'pydantic_core.*\.dist-info' | head -n 1)
+
+if [ -n "$DIST_INFO_DIR" ]; then
+    # Extract the version (e.g. 2.33.2) from the name <pydantic_core-2.33.2.dist-info>
+    PYDANTIC_CORE_VERSION=$(echo "$DIST_INFO_DIR" | sed -E 's/pydantic_core-(.*)\.dist-info/\1/')
+    PYDANTIC_CORE_BASE_URL="https://pypi.org/pypi/pydantic-core/$PYDANTIC_CORE_VERSION/json"
+    echo "Pydantic-Core Version: $PYDANTIC_CORE_VERSION"
+else
+    echo "Error: Could not find Pydantic-Core in the installation directory."
+    exit 1
+fi
+
+# --- STEP 2: SCRAPE AND DOWNLOAD PYDANTIC-CORE WHEELS AND INSTALL LOCAL DEPENDENCIES ---
+# Extract py-ver specific wheels automatically (Windows/x64 only)
+#  e.g. "https://files.pythonhosted.org/packages/4f/53/a31aaa220ac133f05e4e3622f65ad9b02e6cbd89723d8d035f5effac8701/pydantic_core-2.33.0-cp39-cp39-win_amd64.whl"
+PYDANTIC_CORE_FILE_URLS=($(curl -sL "$PYDANTIC_CORE_BASE_URL" | \
+                           jq -r '.urls[].url' | \
+                           grep -E "cp(39|310|311|312|313)-cp\1-win_amd64\.whl" | \
+                           sort -u))
 
 # Update/Clean PIP and install local dependencies
 echo "=> Update PIP"
@@ -34,8 +77,8 @@ pip install -r ../requirements.txt \
     --only-binary=:all:
 
 # Pydantic Binary Library Handler
-echo "=> Create and Change tmp dir: $TMP_DIR"
-mkdir -p $TMP_DIR ; cd $TMP_DIR
+echo "=> Create and Change tmp dir: $TEMP_DIR_PYDANTIC"
+mkdir -p $TEMP_DIR_PYDANTIC ; cd $TEMP_DIR_PYDANTIC
 
 echo "=> Iterate over array, download wheels, extract and move *.pyd binaries"
 for LINK in "${PYDANTIC_CORE_FILE_URLS[@]}"; do
@@ -47,5 +90,5 @@ for LINK in "${PYDANTIC_CORE_FILE_URLS[@]}"; do
     rm -rf ./*
 done
 
-echo "=> Change to work dir and delete tmp dir"
-cd $WORK_DIR ; rmdir $TMP_DIR
+echo "=> Change to work dir and run into cleanup trap"
+cd $WORK_DIR

@@ -1,3 +1,4 @@
+import contextlib
 import json
 from base64 import b64decode, b64encode
 from datetime import datetime
@@ -78,8 +79,8 @@ class SubscriptableBaseModel(BaseModel):
     if key in self.model_fields_set:
       return True
 
-    if key in self.model_fields:
-      return self.model_fields[key].default is not None
+    if value := self.__class__.model_fields.get(key):
+      return value.default is not None
 
     return False
 
@@ -97,7 +98,7 @@ class SubscriptableBaseModel(BaseModel):
     >>> msg.get('tool_calls')[0]['function']['name']
     'foo'
     """
-    return self[key] if key in self else default
+    return getattr(self, key) if hasattr(self, key) else default
 
 
 class Options(SubscriptableBaseModel):
@@ -206,6 +207,9 @@ class GenerateRequest(BaseGenerateRequest):
   images: Optional[Sequence[Image]] = None
   'Image data for multimodal models.'
 
+  think: Optional[Union[bool, Literal['low', 'medium', 'high']]] = None
+  'Enable thinking mode (for thinking models).'
+
 
 class BaseGenerateResponse(SubscriptableBaseModel):
   model: Optional[str] = None
@@ -247,6 +251,9 @@ class GenerateResponse(BaseGenerateResponse):
   response: str
   'Response content. When streaming, this contains a fragment of the response.'
 
+  thinking: Optional[str] = None
+  'Thinking content. Only present when thinking is enabled.'
+
   context: Optional[Sequence[int]] = None
   'Tokenized history up to the point of the response.'
 
@@ -256,11 +263,14 @@ class Message(SubscriptableBaseModel):
   Chat message.
   """
 
-  role: Literal['user', 'assistant', 'system', 'tool']
+  role: str
   "Assumed role of the message. Response messages has role 'assistant' or 'tool'."
 
   content: Optional[str] = None
   'Content of the message. Response messages contains message fragments when streaming.'
+
+  thinking: Optional[str] = None
+  'Thinking content. Only present when thinking is enabled.'
 
   images: Optional[Sequence[Image]] = None
   """
@@ -273,6 +283,9 @@ class Message(SubscriptableBaseModel):
 
   Valid image formats depend on the model. See the model card for more information.
   """
+
+  tool_name: Optional[str] = None
+  'Name of the executed tool.'
 
   class ToolCall(SubscriptableBaseModel):
     """
@@ -300,21 +313,26 @@ class Message(SubscriptableBaseModel):
 
 
 class Tool(SubscriptableBaseModel):
-  type: Optional[Literal['function']] = 'function'
+  type: Optional[str] = 'function'
 
   class Function(SubscriptableBaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
 
     class Parameters(SubscriptableBaseModel):
+      model_config = ConfigDict(populate_by_name=True)
       type: Optional[Literal['object']] = 'object'
+      defs: Optional[Any] = Field(None, alias='$defs')
+      items: Optional[Any] = None
       required: Optional[Sequence[str]] = None
 
       class Property(SubscriptableBaseModel):
         model_config = ConfigDict(arbitrary_types_allowed=True)
 
-        type: Optional[str] = None
+        type: Optional[Union[str, Sequence[str]]] = None
+        items: Optional[Any] = None
         description: Optional[str] = None
+        enum: Optional[Sequence[Any]] = None
 
       properties: Optional[Mapping[str, Property]] = None
 
@@ -324,11 +342,23 @@ class Tool(SubscriptableBaseModel):
 
 
 class ChatRequest(BaseGenerateRequest):
+  @model_serializer(mode='wrap')
+  def serialize_model(self, nxt):
+    output = nxt(self)
+    if output.get('tools'):
+      for tool in output['tools']:
+        if 'function' in tool and 'parameters' in tool['function'] and 'defs' in tool['function']['parameters']:
+          tool['function']['parameters']['$defs'] = tool['function']['parameters'].pop('defs')
+    return output
+
   messages: Optional[Sequence[Union[Mapping[str, Any], Message]]] = None
   'Messages to chat with.'
 
   tools: Optional[Sequence[Tool]] = None
   'Tools to use for the chat.'
+
+  think: Optional[Union[bool, Literal['low', 'medium', 'high']]] = None
+  'Enable thinking mode (for thinking models).'
 
 
 class ChatResponse(BaseGenerateResponse):
@@ -491,6 +521,8 @@ class ShowResponse(SubscriptableBaseModel):
 
   parameters: Optional[str] = None
 
+  capabilities: Optional[List[str]] = None
+
 
 class ProcessResponse(SubscriptableBaseModel):
   class Model(SubscriptableBaseModel):
@@ -501,6 +533,7 @@ class ProcessResponse(SubscriptableBaseModel):
     size: Optional[ByteSize] = None
     size_vram: Optional[ByteSize] = None
     details: Optional[ModelDetails] = None
+    context_length: Optional[int] = None
 
   models: Sequence[Model]
 
@@ -522,12 +555,10 @@ class ResponseError(Exception):
   """
 
   def __init__(self, error: str, status_code: int = -1):
-    try:
-      # try to parse content as JSON and extract 'error'
-      # fallback to raw content if JSON parsing fails
+    # try to parse content as JSON and extract 'error'
+    # fallback to raw content if JSON parsing fails
+    with contextlib.suppress(json.JSONDecodeError):
       error = json.loads(error).get('error', error)
-    except json.JSONDecodeError:
-      ...
 
     super().__init__(error)
     self.error = error

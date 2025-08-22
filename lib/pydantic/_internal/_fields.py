@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 
     from ..fields import FieldInfo
     from ..main import BaseModel
-    from ._dataclasses import StandardDataclass
+    from ._dataclasses import PydanticDataclass, StandardDataclass
     from ._decorators import DecoratorInfos
 
 
@@ -231,16 +231,17 @@ def collect_model_fields(  # noqa: C901
 
             # The `from_annotated_attribute()` call below mutates the assigned `Field()`, so make a copy:
             original_assignment = (
-                copy(assigned_value) if not evaluated and isinstance(assigned_value, FieldInfo_) else assigned_value
+                assigned_value._copy() if not evaluated and isinstance(assigned_value, FieldInfo_) else assigned_value
             )
 
             field_info = FieldInfo_.from_annotated_attribute(ann_type, assigned_value, _source=AnnotationSource.CLASS)
+            # Store the original annotation and assignment value that should be used to rebuild the field info later.
+            # Note that the assignment is always stored as the annotation might contain a type var that is later
+            #  parameterized with an unknown forward reference (and we'll need it to rebuild the field info):
+            field_info._original_assignment = original_assignment
             if not evaluated:
                 field_info._complete = False
-                # Store the original annotation and assignment value that should be used to rebuild
-                # the field info later:
                 field_info._original_annotation = ann_type
-                field_info._original_assignment = original_assignment
             elif 'final' in field_info._qualifiers and not field_info.is_required():
                 warnings.warn(
                     f'Annotation {ann_name!r} is marked as final and has a default value. Pydantic treats {ann_name!r} as a '
@@ -307,6 +308,9 @@ def rebuild_model_fields(
 
     This function should be called whenever a model with incomplete fields is encountered.
 
+    Raises:
+        NameError: If one of the annotations failed to evaluate.
+
     Note:
         This function *doesn't* mutate the model fields in place, as it can be called during
         schema generation, where you don't want to mutate other model's fields.
@@ -319,6 +323,7 @@ def rebuild_model_fields(
             if field_info._complete:
                 rebuilt_fields[f_name] = field_info
             else:
+                existing_desc = field_info.description
                 ann = _typing_extra.eval_type(
                     field_info._original_annotation,
                     *ns_resolver.types_namespace,
@@ -326,11 +331,12 @@ def rebuild_model_fields(
                 ann = _generics.replace_types(ann, typevars_map)
 
                 if (assign := field_info._original_assignment) is PydanticUndefined:
-                    rebuilt_fields[f_name] = FieldInfo_.from_annotation(ann, _source=AnnotationSource.CLASS)
+                    new_field = FieldInfo_.from_annotation(ann, _source=AnnotationSource.CLASS)
                 else:
-                    rebuilt_fields[f_name] = FieldInfo_.from_annotated_attribute(
-                        ann, assign, _source=AnnotationSource.CLASS
-                    )
+                    new_field = FieldInfo_.from_annotated_attribute(ann, assign, _source=AnnotationSource.CLASS)
+                # The description might come from the docstring if `use_attribute_docstrings` was `True`:
+                new_field.description = new_field.description if new_field.description is not None else existing_desc
+                rebuilt_fields[f_name] = new_field
 
     return rebuilt_fields
 
@@ -375,7 +381,7 @@ def collect_dataclass_fields(
                     continue
 
                 globalns, localns = ns_resolver.types_namespace
-                ann_type, _ = _typing_extra.try_eval_type(dataclass_field.type, globalns, localns)
+                ann_type, evaluated = _typing_extra.try_eval_type(dataclass_field.type, globalns, localns)
 
                 if _typing_extra.is_classvar_annotation(ann_type):
                     continue
@@ -402,10 +408,16 @@ def collect_dataclass_fields(
                     field_info = FieldInfo_.from_annotated_attribute(
                         ann_type, dataclass_field.default, _source=AnnotationSource.DATACLASS
                     )
+                    field_info._original_assignment = dataclass_field.default
                 else:
                     field_info = FieldInfo_.from_annotated_attribute(
                         ann_type, dataclass_field, _source=AnnotationSource.DATACLASS
                     )
+                    field_info._original_assignment = dataclass_field
+
+                if not evaluated:
+                    field_info._complete = False
+                    field_info._original_annotation = ann_type
 
                 fields[ann_name] = field_info
 
@@ -432,6 +444,51 @@ def collect_dataclass_fields(
         )
 
     return fields
+
+
+def rebuild_dataclass_fields(
+    cls: type[PydanticDataclass],
+    *,
+    config_wrapper: ConfigWrapper,
+    ns_resolver: NsResolver,
+    typevars_map: Mapping[TypeVar, Any],
+) -> dict[str, FieldInfo]:
+    """Rebuild the (already present) dataclass fields by trying to reevaluate annotations.
+
+    This function should be called whenever a dataclass with incomplete fields is encountered.
+
+    Raises:
+        NameError: If one of the annotations failed to evaluate.
+
+    Note:
+        This function *doesn't* mutate the dataclass fields in place, as it can be called during
+        schema generation, where you don't want to mutate other dataclass's fields.
+    """
+    FieldInfo_ = import_cached_field_info()
+
+    rebuilt_fields: dict[str, FieldInfo] = {}
+    with ns_resolver.push(cls):
+        for f_name, field_info in cls.__pydantic_fields__.items():
+            if field_info._complete:
+                rebuilt_fields[f_name] = field_info
+            else:
+                existing_desc = field_info.description
+                ann = _typing_extra.eval_type(
+                    field_info._original_annotation,
+                    *ns_resolver.types_namespace,
+                )
+                ann = _generics.replace_types(ann, typevars_map)
+                new_field = FieldInfo_.from_annotated_attribute(
+                    ann,
+                    field_info._original_assignment,
+                    _source=AnnotationSource.DATACLASS,
+                )
+
+                # The description might come from the docstring if `use_attribute_docstrings` was `True`:
+                new_field.description = new_field.description if new_field.description is not None else existing_desc
+                rebuilt_fields[f_name] = new_field
+
+    return rebuilt_fields
 
 
 def is_valid_field_name(name: str) -> bool:
