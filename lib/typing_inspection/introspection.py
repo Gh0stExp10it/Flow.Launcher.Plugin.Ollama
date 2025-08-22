@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 import types
-from collections.abc import Generator, Sequence
+from collections.abc import Generator
 from dataclasses import InitVar
 from enum import Enum, IntEnum, auto
 from typing import Any, Literal, NamedTuple, cast
@@ -23,7 +23,7 @@ __all__ = (
     'is_union_origin',
 )
 
-if sys.version_info >= (3, 10):
+if sys.version_info >= (3, 14) or sys.version_info < (3, 10):
 
     def is_union_origin(obj: Any, /) -> bool:
         """Return whether the provided origin is the union form.
@@ -33,9 +33,29 @@ if sys.version_info >= (3, 10):
         True
         >>> is_union_origin(get_origin(int | str))
         True
+        >>> is_union_origin(types.UnionType)
+        True
         ```
+
+        !!! note
+            Since Python 3.14, both `Union[<t1>, <t2>, ...]` and `<t1> | <t2> | ...` forms create instances
+            of the same [`typing.Union`][] class. As such, it is recommended to not use this function
+            anymore (provided that you only support Python 3.14 or greater), and instead use the
+            [`typing_objects.is_union()`][typing_inspection.typing_objects.is_union] function directly:
+
+            ```python
+            from typing import Union, get_origin
+
+            from typing_inspection import typing_objects
+
+            typ = int | str  # Or Union[int, str]
+            origin = get_origin(typ)
+            if typing_objects.is_union(origin):
+                ...
+            ```
         """
-        return typing_objects.is_union(obj) or obj is types.UnionType
+        return typing_objects.is_union(obj)
+
 
 else:
 
@@ -47,9 +67,28 @@ else:
         True
         >>> is_union_origin(get_origin(int | str))
         True
+        >>> is_union_origin(types.UnionType)
+        True
         ```
+
+        !!! note
+            Since Python 3.14, both `Union[<t1>, <t2>, ...]` and `<t1> | <t2> | ...` forms create instances
+            of the same [`typing.Union`][] class. As such, it is recommended to not use this function
+            anymore (provided that you only support Python 3.14 or greater), and instead use the
+            [`typing_objects.is_union()`][typing_inspection.typing_objects.is_union] function directly:
+
+            ```python
+            from typing import Union, get_origin
+
+            from typing_inspection import typing_objects
+
+            typ = int | str  # Or Union[int, str]
+            origin = get_origin(typ)
+            if typing_objects.is_union(origin):
+                ...
+            ```
         """
-        return typing_objects.is_union(obj)
+        return typing_objects.is_union(obj) or obj is types.UnionType
 
 
 def _literal_type_check(value: Any, /) -> None:
@@ -223,7 +262,7 @@ class AnnotationSource(IntEnum):
         y: InitVar[str] = 'test'
     ```
 
-    **Allowed type qualifiers:** [`ClassVar`][typing.ClassVar], [`Final`][typing.Final], [`InitVar`][dataclasses-init-only-variables].
+    **Allowed type qualifiers:** [`ClassVar`][typing.ClassVar], [`Final`][typing.Final], [`InitVar`][dataclasses.InitVar].
     """  # noqa: E501
 
     TYPED_DICT = auto()
@@ -341,7 +380,7 @@ class InspectedAnnotation(NamedTuple):
     qualifiers: set[Qualifier]
     """The [type qualifiers][type qualifier] present on the annotation."""
 
-    metadata: Sequence[Any]
+    metadata: list[Any]
     """The annotated metadata."""
 
 
