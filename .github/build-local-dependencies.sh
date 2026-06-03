@@ -60,12 +60,21 @@ fi
 #  e.g. "https://files.pythonhosted.org/packages/4f/53/a31aaa220ac133f05e4e3622f65ad9b02e6cbd89723d8d035f5effac8701/pydantic_core-2.33.0-cp39-cp39-win_amd64.whl"
 PYDANTIC_CORE_FILE_URLS=($(curl -sL "$PYDANTIC_CORE_BASE_URL" | \
                            jq -r '.urls[].url' | \
-                           grep -E "cp(39|310|311|312|313)-cp\1-win_amd64\.whl" | \
+                           grep -E "cp(39|310|311|312|313|314|315)-cp\1-win_amd64\.whl" | \
                            sort -u))
 
 # Update/Clean PIP and install local dependencies
 echo "=> Update PIP"
-python3 -m pip install --upgrade pip
+PEP668_FILE=$(python3 -c "import sysconfig; print(sysconfig.get_path('stdlib'))" 2>/dev/null)/EXTERNALLY-MANAGED
+if [ -f "$PEP668_FILE" ] && command -v apt &>/dev/null; then
+    echo "=> PEP 668 Schutz aktiv: Upgrade via sudo apt..."
+    sudo apt-get update && sudo apt-get install --only-upgrade python3-pip -y
+    PIP_FLAGS="--break-system-packages"
+else
+    echo "=> Upgrade via python3..."
+    python3 -m pip install --upgrade pip
+    PIP_FLAGS=""
+fi
 echo "=> Purge PIP cache for clean platform change"
 pip cache purge
 echo "=> Cleanup local dependencies (/lib)"
@@ -74,7 +83,8 @@ echo "=> Install requirements with windows platform dependency"
 pip install -r ../requirements.txt \
     --platform win_amd64 \
     --target ../lib \
-    --only-binary=:all:
+    --only-binary=:all: \
+    $PIP_FLAGS
 
 # Pydantic Binary Library Handler
 echo "=> Create and Change tmp dir: $TEMP_DIR_PYDANTIC"
