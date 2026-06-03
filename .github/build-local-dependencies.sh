@@ -60,7 +60,7 @@ fi
 #  e.g. "https://files.pythonhosted.org/packages/4f/53/a31aaa220ac133f05e4e3622f65ad9b02e6cbd89723d8d035f5effac8701/pydantic_core-2.33.0-cp39-cp39-win_amd64.whl"
 PYDANTIC_CORE_FILE_URLS=($(curl -sL "$PYDANTIC_CORE_BASE_URL" | \
                            jq -r '.urls[].url' | \
-                           grep -E "cp(39|310|311|312|313)-cp\1-win_amd64\.whl" | \
+                           grep -E "cp(39|310|311|312|313|314|315)-cp\1-win_amd64\.whl" | \
                            sort -u))
 
 # Update/Clean PIP and install local dependencies
