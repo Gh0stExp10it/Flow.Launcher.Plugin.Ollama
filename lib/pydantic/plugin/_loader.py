@@ -14,7 +14,7 @@ PYDANTIC_ENTRY_POINT_GROUP: Final[str] = 'pydantic'
 
 # cache of plugins
 _plugins: dict[str, PydanticPluginProtocol] | None = None
-# return no plugins while loading plugins to avoid recursion and errors while import plugins
+# return no plugins while loading plugins to avoid recursion and errors while importing plugins
 # this means that if plugins use pydantic
 _loading_plugins: bool = False
 
@@ -49,7 +49,8 @@ def get_plugins() -> Iterable[PydanticPluginProtocol]:
                     except (ImportError, AttributeError) as e:
                         warnings.warn(
                             f'{e.__class__.__name__} while loading the `{entry_point.name}` Pydantic plugin, '
-                            f'this plugin will not be installed.\n\n{e!r}'
+                            f'this plugin will not be installed.\n\n{e!r}',
+                            stacklevel=2,
                         )
         finally:
             _loading_plugins = False

@@ -17,10 +17,8 @@ from collections.abc import (
     Iterable,
     Sequence,
 )
-from concurrent.futures import Future
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from functools import partial
 from io import IOBase
 from os import PathLike
 from signal import Signals
@@ -32,6 +30,7 @@ from typing import (
     Any,
     Generic,
     NoReturn,
+    ParamSpec,
     TypeVar,
     cast,
     overload,
@@ -54,6 +53,7 @@ from .. import (
     CapacityLimiterStatistics,
     EventStatistics,
     LockStatistics,
+    RunFinishedError,
     TaskInfo,
     WouldBlock,
     abc,
@@ -84,11 +84,6 @@ from ..streams.memory import MemoryObjectSendStream
 
 if TYPE_CHECKING:
     from _typeshed import FileDescriptorLike
-
-if sys.version_info >= (3, 10):
-    from typing import ParamSpec
-else:
-    from typing_extensions import ParamSpec
 
 if sys.version_info >= (3, 11):
     from typing import TypeVarTuple, Unpack
@@ -136,8 +131,8 @@ class CancelScope(BaseCancelScope):
     ) -> bool:
         return self.__original.__exit__(exc_type, exc_val, exc_tb)
 
-    def cancel(self) -> None:
-        self.__original.cancel()
+    def cancel(self, reason: str | None = None) -> None:
+        self.__original.cancel(reason)
 
     @property
     def deadline(self) -> float:
@@ -221,38 +216,6 @@ class TaskGroup(abc.TaskGroup):
             )
 
         return await self._nursery.start(func, *args, name=name)
-
-
-#
-# Threads
-#
-
-
-class BlockingPortal(abc.BlockingPortal):
-    def __new__(cls) -> BlockingPortal:
-        return object.__new__(cls)
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._token = trio.lowlevel.current_trio_token()
-
-    def _spawn_task_from_thread(
-        self,
-        func: Callable[[Unpack[PosArgsT]], Awaitable[T_Retval] | T_Retval],
-        args: tuple[Unpack[PosArgsT]],
-        kwargs: dict[str, Any],
-        name: object,
-        future: Future[T_Retval],
-    ) -> None:
-        trio.from_thread.run_sync(
-            partial(self._task_group.start_soon, name=name),
-            self._call_func,
-            func,
-            args,
-            kwargs,
-            future,
-            trio_token=self._token,
-        )
 
 
 #
@@ -920,6 +883,7 @@ class TestRunner(abc.TestRunner):
     def _call_in_runner_task(
         self,
         func: Callable[P, Awaitable[T_Retval]],
+        /,
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> T_Retval:
@@ -1094,7 +1058,11 @@ class TrioBackend(AsyncBackend):
         args: tuple[Unpack[PosArgsT]],
         token: object,
     ) -> T_Retval:
-        return trio.from_thread.run(func, *args)
+        trio_token = cast("trio.lowlevel.TrioToken | None", token)
+        try:
+            return trio.from_thread.run(func, *args, trio_token=trio_token)
+        except trio.RunFinishedError:
+            raise RunFinishedError from None
 
     @classmethod
     def run_sync_from_thread(
@@ -1103,11 +1071,11 @@ class TrioBackend(AsyncBackend):
         args: tuple[Unpack[PosArgsT]],
         token: object,
     ) -> T_Retval:
-        return trio.from_thread.run_sync(func, *args)
-
-    @classmethod
-    def create_blocking_portal(cls) -> abc.BlockingPortal:
-        return BlockingPortal()
+        trio_token = cast("trio.lowlevel.TrioToken | None", token)
+        try:
+            return trio.from_thread.run_sync(func, *args, trio_token=trio_token)
+        except trio.RunFinishedError:
+            raise RunFinishedError from None
 
     @classmethod
     async def open_process(
