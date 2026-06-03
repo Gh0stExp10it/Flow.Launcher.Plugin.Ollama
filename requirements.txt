@@ -1,2 +1,2 @@
-pyflowlauncher==0.9.2
-ollama==0.5.3
+pyflowlauncher==0.10.0
+ollama==0.6.2
