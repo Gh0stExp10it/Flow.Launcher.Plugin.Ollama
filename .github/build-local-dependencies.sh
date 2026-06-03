@@ -65,7 +65,16 @@ PYDANTIC_CORE_FILE_URLS=($(curl -sL "$PYDANTIC_CORE_BASE_URL" | \
 
 # Update/Clean PIP and install local dependencies
 echo "=> Update PIP"
-python3 -m pip install --upgrade pip
+PEP668_FILE=$(python3 -c "import sysconfig; print(sysconfig.get_path('stdlib'))" 2>/dev/null)/EXTERNALLY-MANAGED
+if [ -f "$PEP668_FILE" ] && command -v apt &>/dev/null; then
+    echo "=> PEP 668 Schutz aktiv: Upgrade via sudo apt..."
+    sudo apt-get update && sudo apt-get install --only-upgrade python3-pip -y
+    PIP_FLAGS="--break-system-packages"
+else
+    echo "=> Upgrade via python3..."
+    python3 -m pip install --upgrade pip
+    PIP_FLAGS=""
+fi
 echo "=> Purge PIP cache for clean platform change"
 pip cache purge
 echo "=> Cleanup local dependencies (/lib)"
@@ -74,7 +83,8 @@ echo "=> Install requirements with windows platform dependency"
 pip install -r ../requirements.txt \
     --platform win_amd64 \
     --target ../lib \
-    --only-binary=:all:
+    --only-binary=:all: \
+    $PIP_FLAGS
 
 # Pydantic Binary Library Handler
 echo "=> Create and Change tmp dir: $TEMP_DIR_PYDANTIC"
