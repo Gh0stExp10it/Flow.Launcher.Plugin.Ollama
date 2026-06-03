@@ -1,5 +1,4 @@
 from pyflowlauncher import Plugin, Result, Method, api as API
-from pyflowlauncher.result import ResultResponse
 from datetime import datetime
 from .ollama import Ollama
 
@@ -21,7 +20,7 @@ class Query(Method):
         if self.log_level:
             self.plugin._logger.setLevel(self.log_level)
     
-    def __call__(self, query: str) -> ResultResponse:
+    def __call__(self, query: str):
         try:
             if query.endswith(self.prompt_stop):
                 if self.ollama_host:
