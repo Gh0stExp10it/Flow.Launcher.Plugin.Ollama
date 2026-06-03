@@ -23,6 +23,8 @@ class CancelScope:
 
     :param deadline: The time (clock value) when this scope is cancelled automatically
     :param shield: ``True`` to shield the cancel scope from external cancellation
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
     """
 
     def __new__(
@@ -30,8 +32,13 @@ class CancelScope:
     ) -> CancelScope:
         return get_async_backend().create_cancel_scope(shield=shield, deadline=deadline)
 
-    def cancel(self) -> None:
-        """Cancel this scope immediately."""
+    def cancel(self, reason: str | None = None) -> None:
+        """
+        Cancel this scope immediately.
+
+        :param reason: a message describing the reason for the cancellation
+
+        """
         raise NotImplementedError
 
     @property
@@ -105,6 +112,8 @@ def fail_after(
     :param shield: ``True`` to shield the cancel scope from external cancellation
     :return: a context manager that yields a cancel scope
     :rtype: :class:`~typing.ContextManager`\\[:class:`~anyio.CancelScope`\\]
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     """
     current_time = get_async_backend().current_time
@@ -126,6 +135,8 @@ def move_on_after(delay: float | None, shield: bool = False) -> CancelScope:
         ``None`` to disable the timeout
     :param shield: ``True`` to shield the cancel scope from external cancellation
     :return: a cancel scope
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     """
     deadline = (
@@ -143,6 +154,8 @@ def current_effective_deadline() -> float:
         there is no deadline in effect, or ``float('-inf')`` if the current scope has
         been cancelled)
     :rtype: float
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     """
     return get_async_backend().current_effective_deadline()
@@ -153,6 +166,8 @@ def create_task_group() -> TaskGroup:
     Create a task group.
 
     :return: a task group
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     """
     return get_async_backend().create_task_group()

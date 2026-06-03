@@ -210,6 +210,22 @@ class GenerateRequest(BaseGenerateRequest):
   think: Optional[Union[bool, Literal['low', 'medium', 'high']]] = None
   'Enable thinking mode (for thinking models).'
 
+  logprobs: Optional[bool] = None
+  'Return log probabilities for generated tokens.'
+
+  top_logprobs: Optional[int] = None
+  'Number of alternative tokens and log probabilities to include per position (0-20).'
+
+  # Experimental image generation parameters
+  width: Optional[int] = None
+  'Width of the generated image in pixels (for image generation models).'
+
+  height: Optional[int] = None
+  'Height of the generated image in pixels (for image generation models).'
+
+  steps: Optional[int] = None
+  'Number of diffusion steps (for image generation models).'
+
 
 class BaseGenerateResponse(SubscriptableBaseModel):
   model: Optional[str] = None
@@ -243,12 +259,25 @@ class BaseGenerateResponse(SubscriptableBaseModel):
   'Duration of evaluating inference in nanoseconds.'
 
 
+class TokenLogprob(SubscriptableBaseModel):
+  token: str
+  'Token text.'
+
+  logprob: float
+  'Log probability for the token.'
+
+
+class Logprob(TokenLogprob):
+  top_logprobs: Optional[Sequence[TokenLogprob]] = None
+  'Most likely tokens and their log probabilities.'
+
+
 class GenerateResponse(BaseGenerateResponse):
   """
   Response returned by generate requests.
   """
 
-  response: str
+  response: Optional[str] = None
   'Response content. When streaming, this contains a fragment of the response.'
 
   thinking: Optional[str] = None
@@ -256,6 +285,20 @@ class GenerateResponse(BaseGenerateResponse):
 
   context: Optional[Sequence[int]] = None
   'Tokenized history up to the point of the response.'
+
+  logprobs: Optional[Sequence[Logprob]] = None
+  'Log probabilities for generated tokens.'
+
+  # Image generation response fields
+  image: Optional[str] = None
+  'Base64-encoded generated image data (for image generation models).'
+
+  # Streaming progress fields (for image generation)
+  completed: Optional[int] = None
+  'Number of completed steps (for image generation streaming).'
+
+  total: Optional[int] = None
+  'Total number of steps (for image generation streaming).'
 
 
 class Message(SubscriptableBaseModel):
@@ -360,6 +403,12 @@ class ChatRequest(BaseGenerateRequest):
   think: Optional[Union[bool, Literal['low', 'medium', 'high']]] = None
   'Enable thinking mode (for thinking models).'
 
+  logprobs: Optional[bool] = None
+  'Return log probabilities for generated tokens.'
+
+  top_logprobs: Optional[int] = None
+  'Number of alternative tokens and log probabilities to include per position (0-20).'
+
 
 class ChatResponse(BaseGenerateResponse):
   """
@@ -368,6 +417,9 @@ class ChatResponse(BaseGenerateResponse):
 
   message: Message
   'Response message.'
+
+  logprobs: Optional[Sequence[Logprob]] = None
+  'Log probabilities for generated tokens if requested.'
 
 
 class EmbedRequest(BaseRequest):
@@ -381,6 +433,9 @@ class EmbedRequest(BaseRequest):
   'Options to use for the request.'
 
   keep_alive: Optional[Union[float, str]] = None
+
+  dimensions: Optional[int] = None
+  'Dimensions truncates the output embedding to the specified dimension.'
 
 
 class EmbedResponse(BaseGenerateResponse):
@@ -536,6 +591,31 @@ class ProcessResponse(SubscriptableBaseModel):
     context_length: Optional[int] = None
 
   models: Sequence[Model]
+
+
+class WebSearchRequest(SubscriptableBaseModel):
+  query: str
+  max_results: Optional[int] = None
+
+
+class WebSearchResult(SubscriptableBaseModel):
+  content: Optional[str] = None
+  title: Optional[str] = None
+  url: Optional[str] = None
+
+
+class WebFetchRequest(SubscriptableBaseModel):
+  url: str
+
+
+class WebSearchResponse(SubscriptableBaseModel):
+  results: Sequence[WebSearchResult]
+
+
+class WebFetchResponse(SubscriptableBaseModel):
+  title: Optional[str] = None
+  content: Optional[str] = None
+  links: Optional[Sequence[str]] = None
 
 
 class RequestError(Exception):
