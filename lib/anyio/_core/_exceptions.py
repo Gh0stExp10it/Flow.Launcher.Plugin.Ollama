@@ -132,3 +132,25 @@ class TypedAttributeLookupError(LookupError):
 
 class WouldBlock(Exception):
     """Raised by ``X_nowait`` functions if ``X()`` would block."""
+
+
+class NoEventLoopError(RuntimeError):
+    """
+    Raised by several functions that require an event loop to be running in the current
+    thread when there is no running event loop.
+
+    This is also raised by :func:`.from_thread.run` and :func:`.from_thread.run_sync`
+    if not calling from an AnyIO worker thread, and no ``token`` was passed.
+    """
+
+
+class RunFinishedError(RuntimeError):
+    """
+    Raised by :func:`.from_thread.run` and :func:`.from_thread.run_sync` if the event
+    loop associated with the explicitly passed token has already finished.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            "The event loop associated with the given token has already finished"
+        )

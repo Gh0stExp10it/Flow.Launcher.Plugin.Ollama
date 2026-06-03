@@ -301,63 +301,120 @@ async def create_tcp_listener(
     :param reuse_port: ``True`` to allow multiple sockets to bind to the same
         address/port (not supported on Windows)
     :return: a multi-listener object containing one or more socket listeners
+    :raises OSError: if there's an error creating a socket, or binding to one or more
+        interfaces failed
 
     """
     asynclib = get_async_backend()
     backlog = min(backlog, 65536)
     local_host = str(local_host) if local_host is not None else None
-    gai_res = await getaddrinfo(
-        local_host,
-        local_port,
-        family=family,
-        type=socket.SocketKind.SOCK_STREAM if sys.platform == "win32" else 0,
-        flags=socket.AI_PASSIVE | socket.AI_ADDRCONFIG,
-    )
-    listeners: list[SocketListener] = []
-    try:
-        # The set() is here to work around a glibc bug:
-        # https://sourceware.org/bugzilla/show_bug.cgi?id=14969
-        sockaddr: tuple[str, int] | tuple[str, int, int, int]
-        for fam, kind, *_, sockaddr in sorted(set(gai_res)):
-            # Workaround for an uvloop bug where we don't get the correct scope ID for
-            # IPv6 link-local addresses when passing type=socket.SOCK_STREAM to
-            # getaddrinfo(): https://github.com/MagicStack/uvloop/issues/539
-            if sys.platform != "win32" and kind is not SocketKind.SOCK_STREAM:
-                continue
 
-            raw_socket = socket.socket(fam)
-            raw_socket.setblocking(False)
+    def setup_raw_socket(
+        fam: AddressFamily,
+        bind_addr: tuple[str, int] | tuple[str, int, int, int],
+        *,
+        v6only: bool = True,
+    ) -> socket.socket:
+        sock = socket.socket(fam)
+        try:
+            sock.setblocking(False)
+
+            if fam == AddressFamily.AF_INET6:
+                sock.setsockopt(IPPROTO_IPV6, socket.IPV6_V6ONLY, v6only)
 
             # For Windows, enable exclusive address use. For others, enable address
             # reuse.
             if sys.platform == "win32":
-                raw_socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
             else:
-                raw_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
             if reuse_port:
-                raw_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
 
-            # If only IPv6 was requested, disable dual stack operation
-            if fam == socket.AF_INET6:
-                raw_socket.setsockopt(IPPROTO_IPV6, socket.IPV6_V6ONLY, 1)
+            # Workaround for #554
+            if fam == socket.AF_INET6 and "%" in bind_addr[0]:
+                addr, scope_id = bind_addr[0].split("%", 1)
+                bind_addr = (addr, bind_addr[1], 0, int(scope_id))
 
-                # Workaround for #554
-                if "%" in sockaddr[0]:
-                    addr, scope_id = sockaddr[0].split("%", 1)
-                    sockaddr = (addr, sockaddr[1], 0, int(scope_id))
+            sock.bind(bind_addr)
+            sock.listen(backlog)
+        except BaseException:
+            sock.close()
+            raise
 
-            raw_socket.bind(sockaddr)
-            raw_socket.listen(backlog)
-            listener = asynclib.create_tcp_listener(raw_socket)
-            listeners.append(listener)
-    except BaseException:
-        for listener in listeners:
-            await listener.aclose()
+        return sock
 
-        raise
+    # We passing type=0 on non-Windows platforms as a workaround for a uvloop bug
+    # where we don't get the correct scope ID for IPv6 link-local addresses when passing
+    # type=socket.SOCK_STREAM to getaddrinfo():
+    # https://github.com/MagicStack/uvloop/issues/539
+    gai_res = await getaddrinfo(
+        local_host,
+        local_port,
+        family=family,
+        type=socket.SOCK_STREAM if sys.platform == "win32" else 0,
+        flags=socket.AI_PASSIVE | socket.AI_ADDRCONFIG,
+    )
 
-    return MultiListener(listeners)
+    # The set comprehension is here to work around a glibc bug:
+    # https://sourceware.org/bugzilla/show_bug.cgi?id=14969
+    sockaddrs = sorted({res for res in gai_res if res[1] == SocketKind.SOCK_STREAM})
+
+    # Special case for dual-stack binding on the "any" interface
+    if (
+        local_host is None
+        and family == AddressFamily.AF_UNSPEC
+        and socket.has_dualstack_ipv6()
+        and any(fam == AddressFamily.AF_INET6 for fam, *_ in gai_res)
+    ):
+        raw_socket = setup_raw_socket(
+            AddressFamily.AF_INET6, ("::", local_port), v6only=False
+        )
+        listener = asynclib.create_tcp_listener(raw_socket)
+        return MultiListener([listener])
+
+    errors: list[OSError] = []
+    try:
+        for _ in range(len(sockaddrs)):
+            listeners: list[SocketListener] = []
+            bound_ephemeral_port = local_port
+            try:
+                for fam, *_, sockaddr in sockaddrs:
+                    sockaddr = sockaddr[0], bound_ephemeral_port, *sockaddr[2:]
+                    raw_socket = setup_raw_socket(fam, sockaddr)
+
+                    # Store the assigned port if an ephemeral port was requested, so
+                    # we'll bind to the same port on all interfaces
+                    if local_port == 0 and len(gai_res) > 1:
+                        bound_ephemeral_port = raw_socket.getsockname()[1]
+
+                    listeners.append(asynclib.create_tcp_listener(raw_socket))
+            except BaseException as exc:
+                for listener in listeners:
+                    await listener.aclose()
+
+                # If an ephemeral port was requested but binding the assigned port
+                # failed for another interface, rotate the address list and try again
+                if (
+                    isinstance(exc, OSError)
+                    and exc.errno == errno.EADDRINUSE
+                    and local_port == 0
+                    and bound_ephemeral_port
+                ):
+                    errors.append(exc)
+                    sockaddrs.append(sockaddrs.pop(0))
+                    continue
+
+                raise
+
+            return MultiListener(listeners)
+
+        raise OSError(
+            f"Could not create {len(sockaddrs)} listeners with a consistent port"
+        ) from ExceptionGroup("Several bind attempts failed", errors)
+    finally:
+        del errors  # Prevent reference cycles
 
 
 async def create_unix_listener(
@@ -607,6 +664,8 @@ def getnameinfo(sockaddr: IPSockAddrType, flags: int = 0) -> Awaitable[tuple[str
     :param sockaddr: socket address (e.g. (ipaddress, port) for IPv4)
     :param flags: flags to pass to upstream ``getnameinfo()``
     :return: a tuple of (host name, service name)
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     .. seealso:: :func:`socket.getnameinfo`
 
@@ -630,6 +689,8 @@ def wait_socket_readable(sock: socket.socket) -> Awaitable[None]:
         socket to become readable
     :raises ~anyio.BusyResourceError: if another task is already waiting for the socket
         to become readable
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     """
     return get_async_backend().wait_readable(sock.fileno())
@@ -654,6 +715,8 @@ def wait_socket_writable(sock: socket.socket) -> Awaitable[None]:
         socket to become writable
     :raises ~anyio.BusyResourceError: if another task is already waiting for the socket
         to become writable
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     """
     return get_async_backend().wait_writable(sock.fileno())
@@ -685,6 +748,8 @@ def wait_readable(obj: FileDescriptorLike) -> Awaitable[None]:
         object to become readable
     :raises ~anyio.BusyResourceError: if another task is already waiting for the object
         to become readable
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     """
     return get_async_backend().wait_readable(obj)
@@ -699,6 +764,8 @@ def wait_writable(obj: FileDescriptorLike) -> Awaitable[None]:
         object to become writable
     :raises ~anyio.BusyResourceError: if another task is already waiting for the object
         to become writable
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     .. seealso:: See the documentation of :func:`wait_readable` for the definition of
        ``obj`` and notes on backend compatibility.
@@ -735,6 +802,8 @@ def notify_closing(obj: FileDescriptorLike) -> None:
     in anyway.
 
     :param obj: an object with a ``.fileno()`` method or an integer handle
+    :raises NoEventLoopError: if no supported asynchronous event loop is running in the
+        current thread
 
     """
     get_async_backend().notify_closing(obj)

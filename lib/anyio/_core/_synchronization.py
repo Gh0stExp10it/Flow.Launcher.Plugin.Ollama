@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import math
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from types import TracebackType
+from typing import TypeVar
 
-from sniffio import AsyncLibraryNotFoundError
-
-from ..lowlevel import checkpoint
+from ..lowlevel import checkpoint_if_cancelled
 from ._eventloop import get_async_backend
-from ._exceptions import BusyResourceError
+from ._exceptions import BusyResourceError, NoEventLoopError
 from ._tasks import CancelScope
 from ._testing import TaskInfo, get_current_task
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -81,7 +83,7 @@ class Event:
     def __new__(cls) -> Event:
         try:
             return get_async_backend().create_event()
-        except AsyncLibraryNotFoundError:
+        except NoEventLoopError:
             return EventAdapter()
 
     def set(self) -> None:
@@ -149,7 +151,7 @@ class Lock:
     def __new__(cls, *, fast_acquire: bool = False) -> Lock:
         try:
             return get_async_backend().create_lock(fast_acquire=fast_acquire)
-        except AsyncLibraryNotFoundError:
+        except NoEventLoopError:
             return LockAdapter(fast_acquire=fast_acquire)
 
     async def __aenter__(self) -> None:
@@ -323,7 +325,8 @@ class Condition:
 
     async def wait(self) -> None:
         """Wait for a notification."""
-        await checkpoint()
+        await checkpoint_if_cancelled()
+        self._check_acquired()
         event = Event()
         self._waiters.append(event)
         self.release()
@@ -332,11 +335,31 @@ class Condition:
         except BaseException:
             if not event.is_set():
                 self._waiters.remove(event)
+            elif self._waiters:
+                # This task was notified by could not act on it, so pass
+                # it on to the next task
+                self._waiters.popleft().set()
 
             raise
         finally:
             with CancelScope(shield=True):
                 await self.acquire()
+
+    async def wait_for(self, predicate: Callable[[], T]) -> T:
+        """
+        Wait until a predicate becomes true.
+
+        :param predicate: a callable that returns a truthy value when the condition is
+            met
+        :return: the result of the predicate
+
+        .. versionadded:: 4.11.0
+
+        """
+        while not (result := predicate()):
+            await self.wait()
+
+        return result
 
     def statistics(self) -> ConditionStatistics:
         """
@@ -359,7 +382,7 @@ class Semaphore:
             return get_async_backend().create_semaphore(
                 initial_value, max_value=max_value, fast_acquire=fast_acquire
             )
-        except AsyncLibraryNotFoundError:
+        except NoEventLoopError:
             return SemaphoreAdapter(initial_value, max_value=max_value)
 
     def __init__(
@@ -494,7 +517,7 @@ class CapacityLimiter:
     def __new__(cls, total_tokens: float) -> CapacityLimiter:
         try:
             return get_async_backend().create_capacity_limiter(total_tokens)
-        except AsyncLibraryNotFoundError:
+        except NoEventLoopError:
             return CapacityLimiterAdapter(total_tokens)
 
     async def __aenter__(self) -> None:
@@ -519,6 +542,8 @@ class CapacityLimiter:
 
         .. versionchanged:: 3.0
             The property is now writable.
+        .. versionchanged:: 4.12
+            The value can now be set to 0.
 
         """
         raise NotImplementedError
