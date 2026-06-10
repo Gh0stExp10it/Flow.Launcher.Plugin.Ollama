@@ -1,6 +1,6 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: pyflowlauncher
-Version: 0.9.2
+Version: 0.10.0
 Summary: Python library to help build Flow Launcher plugins.
 Author-email: William McAllister <dev.garulf@gmail.com>
 License: MIT
@@ -14,9 +14,10 @@ Classifier: Typing :: Typed
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: typing-extensions >=4.8.0 ; python_version < "3.11"
+Requires-Dist: typing_extensions>=4.8.0; python_version < "3.11"
 Provides-Extra: all
-Requires-Dist: typing-extensions >=4.8.0 ; extra == 'all'
+Requires-Dist: typing_extensions>=4.8.0; extra == "all"
+Dynamic: license-file
 
 [![Tests Workflow Status](https://img.shields.io/github/actions/workflow/status/garulf/pyflowlauncher/tests.yaml?style=flat-square&label=tests)](https://github.com/Garulf/pyFlowLauncher/actions/workflows/tests.yaml) 
 [![Docs Workflow Status](https://img.shields.io/github/actions/workflow/status/garulf/pyflowlauncher/tests.yaml?style=flat-square&label=docs)](https://github.com/Garulf/pyFlowLauncher/actions/workflows/docs.yaml) 
