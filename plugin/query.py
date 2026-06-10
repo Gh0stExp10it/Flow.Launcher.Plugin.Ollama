@@ -1,5 +1,5 @@
 from pyflowlauncher import Plugin, Result, Method, api as API
-from pyflowlauncher.result import ResultResponse
+from pyflowlauncher.models.json_rpc import JsonRPCResponse
 from datetime import datetime
 from .ollama import Ollama
 
@@ -19,10 +19,13 @@ class Query(Method):
         self.enable_cot = self.plugin.settings.get("enable_cot")
 
         if self.log_level:
-            self.plugin._logger.setLevel(self.log_level)
+            self.plugin.logger.setLevel(self.log_level)
     
-    def __call__(self, query: str) -> ResultResponse:
+    def __call__(self, query: str) -> JsonRPCResponse:
         try:
+            icon = self.plugin.manifest.ico_path
+            website = self.plugin.manifest.website
+            
             if query.endswith(self.prompt_stop):
                 if self.ollama_host:
                     ollama_client = Ollama(ollama_host=self.ollama_host,
@@ -38,12 +41,12 @@ class Query(Method):
                         if not self.enable_cot:
                             chat_response = ollama_client.remove_cot(string=chat_response)
                         
-                        title_clipboard = f"Copy Response to Clipboard"
+                        title_clipboard = "Copy Response to Clipboard"
                         message_clipboard = f"{ollama_client.shorten(string=chat_response, length=int(self.response_preview_length), preserve_newline=self.preserve_newline)}"
                         json_rpc_action_clipboard = API.copy_to_clipboard(text=chat_response)
                     else:
-                        title_clipboard = f"ERROR"
-                        json_rpc_action_clipboard = API.open_url(self.plugin.manifest().get("Website"))
+                        title_clipboard = "ERROR"
+                        json_rpc_action_clipboard = API.open_url(website)
                         
                         if not self.pull_model:
                             message_clipboard = f"Error: The specified model <{self.ollama_model}> does not exist and is not allowed to be pulled automatically - please check your configuration!"
@@ -56,38 +59,38 @@ class Query(Method):
                                                                     timestamp=timestamp,
                                                                     duration=chat_duration)
                         
-                        title_file = f"Open Chat in Editor"
-                        message_file = f"Just select the Entry, file will be opened automatically"
+                        title_file = "Open Chat in Editor"
+                        message_file = "Just select the Entry, file will be opened automatically"
                         json_rpc_action_file = API.shell_run(command=f"start {absolute_filename}",
-                                                             filename= "cmd.exe")
+                                                             filename="cmd.exe")
                     else:
-                        title_file = f"Open Chat in Editor [DISABLED]"
-                        message_file = f"Error: Can't write and open file - please check your configuration!"
-                        json_rpc_action_file = API.open_url(self.plugin.manifest().get("Website"))
+                        title_file = "Open Chat in Editor [DISABLED]"
+                        message_file = "Error: Can't write and open file - please check your configuration!"
+                        json_rpc_action_file = API.open_url(website)
                     
                     self.add_result(Result(
-                        Title=title_clipboard,
-                        SubTitle=message_clipboard,
-                        JsonRPCAction=json_rpc_action_clipboard,
-                        IcoPath=self.plugin.manifest().get("IcoPath")
+                        title=title_clipboard,
+                        subtitle=message_clipboard,
+                        json_rpc_action=json_rpc_action_clipboard,
+                        icon=icon
                     ))
                     
                     self.add_result(Result(
-                        Title=title_file,
-                        SubTitle=message_file,
-                        JsonRPCAction=json_rpc_action_file,
-                        IcoPath=self.plugin.manifest().get("IcoPath")
+                        title=title_file,
+                        subtitle=message_file,
+                        json_rpc_action=json_rpc_action_file,
+                        icon=icon
                     ))
                 else:
-                    title = f"ERROR"
+                    title = "ERROR"
                     message = f"Error: Cant identify Ollama host <{self.ollama_host}>"
-                    json_rpc_action = API.open_url(self.plugin.manifest().get("Website"))
+                    json_rpc_action = API.open_url(website)
                 
                     self.add_result(Result(
-                        Title=title,
-                        SubTitle=message,
-                        JsonRPCAction=json_rpc_action,
-                        IcoPath=self.plugin.manifest().get("IcoPath")
+                        title=title,
+                        subtitle=message,
+                        json_rpc_action=json_rpc_action,
+                        icon=icon
                     ))
             else:
                 title = f"To start Ollama, enter your prompt and end it with {self.prompt_stop}"
@@ -95,12 +98,12 @@ class Query(Method):
                 json_rpc_action = None
                 
                 self.add_result(Result(
-                    Title=title,
-                    SubTitle=message,
-                    JsonRPCAction=json_rpc_action,
-                    IcoPath=self.plugin.manifest().get("IcoPath")
+                    title=title,
+                    subtitle=message,
+                    json_rpc_action=json_rpc_action,
+                    icon=icon
                 ))
         except Exception as e:
-            self._logger.error(e)
+            self.logger.error(f"Error executing query: {e}")
         
         return self.return_results()
