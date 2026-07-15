@@ -23,3 +23,12 @@ class JsonRPCResponse(TypedDict):
 class JsonRPCResult(Result):
     JsonRPCAction: NotRequired[JsonRPCRequest]
     SettingsChange: NotRequired[Dict[str, Any]]
+
+
+class MatchResult(TypedDict, total=False):
+    """Flow Launcher FuzzySearch response (camelCase keys from StreamJsonRpc)."""
+    success: bool
+    score: int
+    rawScore: int
+    matchData: List[int]
+    searchPrecision: int

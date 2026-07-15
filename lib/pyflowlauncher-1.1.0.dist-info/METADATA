@@ -1,9 +1,10 @@
 Metadata-Version: 2.4
 Name: pyflowlauncher
-Version: 0.10.0
+Version: 1.1.0
 Summary: Python library to help build Flow Launcher plugins.
 Author-email: William McAllister <dev.garulf@gmail.com>
 License: MIT
+Project-URL: Repository, https://github.com/Garulf/pyFlowLauncher
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
@@ -49,24 +50,24 @@ python -m pip install pyflowlauncher[all]
 A basic plugin using a function as the query method.
 
 ```py
-from pyflowlauncher import Plugin, Result, send_results
-from pyflowlauncher.result import ResultResponse
+from pyflowlauncher import Plugin, Result
 
 plugin = Plugin()
 
 
 @plugin.on_method
-def query(query: str) -> ResultResponse:
-    r = Result(
-        Title="This is a title!",
-        SubTitle="This is the subtitle!",
-        IcoPath="icon.png"
+def query(query: str):
+    yield Result(
+        title="This is a title!",
+        subtitle="This is the subtitle!",
+        icon="icon.png"
     )
-    return send_results([r])
 
 
 plugin.run()
 ```
+
+Methods decorated with `@plugin.on_method` can `yield` one or more `Result` objects, return a list of `Result` objects, or return a single `Result` — the framework normalizes all forms into the correct response automatically.
 
 ### Advanced plugin
 
@@ -74,17 +75,17 @@ A more advanced usage using a `Method` class as the query method.
 
 ```py
 from pyflowlauncher import Plugin, Result, Method
-from pyflowlauncher.result import ResultResponse
+from .models.json_rpc import JsonRPCResponse
 
 plugin = Plugin()
 
 
 class Query(Method):
 
-    def __call__(self, query: str) -> ResultResponse:
+    def __call__(self, query: str) -> JsonRPCResponse:
         r = Result(
-            Title="This is a title!",
-            SubTitle="This is the subtitle!"
+            title="This is a title!",
+            subtitle="This is the subtitle!"
         )
         self.add_result(r)
         return self.return_results()
