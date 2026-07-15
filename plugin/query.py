@@ -11,23 +11,19 @@ class Query(Method):
         super().__init__()
         self.plugin = plugin
 
-        self.ollama_host = self.plugin.settings.get("ollama_host")
-        self.ollama_model = self.plugin.settings.get("ollama_model")
-        self.pull_model = self.plugin.settings.get("pull_model")
-        self.prompt_stop = self.plugin.settings.get("prompt_stop")
-        self.save_response = self.plugin.settings.get("save_response")
-        self.log_level = self.plugin.settings.get("log_level")
-        self.preserve_newline = self.plugin.settings.get("preserve_newline")
-        self.response_preview_length = self.plugin.settings.get("response_preview_length")
-        self.enable_cot = self.plugin.settings.get("enable_cot")
-
-        if self.log_level:
-            self.plugin.logger.setLevel(self.log_level)
+    # Dynamically route setting lookups to the plugin settings dict    
+    def __getattr__(self, name: str):
+        try:
+            return self.plugin.settings[name]
+        except KeyError:
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
     
     def __call__(self, query: str) -> JsonRPCResponse:
         try:
             icon = self.plugin.manifest.ico_path
             website = self.plugin.manifest.website
+            chat_response = None
+            chat_duration = None
             
             if query.endswith(self.prompt_stop):
                 if self.ollama_host:
