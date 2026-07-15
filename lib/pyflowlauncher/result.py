@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import sys
 from typing import Any, Callable, Dict, Iterable, List, Optional, Union, cast
 
-from .plugin import Method
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
+
+from .types import Method
 from .models.result import Glyph, PreviewInfo
 from .models.json_rpc import JsonRPCResult, JsonRPCRequest, JsonRPCResponse
 
@@ -37,7 +43,7 @@ class Result:
 
     def add_action(
         self, method: Method, parameters: Optional[Iterable[Any]] = None, dont_hide_after_action: bool = False
-    ) -> None:
+    ) -> Self:
         """Adds a JsonRPC action to the result."""
         if not getattr(method, '_is_registered_method', False):
             raise MethodNotRegisteredError(method)
@@ -46,6 +52,7 @@ class Result:
             'Parameters': list(parameters) if parameters else [],
             'DontHideAfterAction': dont_hide_after_action,
         }
+        return self
 
     def as_dict(self) -> Dict[str, Any]:
         return self.__dict__
