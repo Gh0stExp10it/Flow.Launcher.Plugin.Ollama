@@ -1,3 +1,4 @@
+import logging
 from pyflowlauncher import Plugin, Result, Method, api as API
 from pyflowlauncher.models.json_rpc import JsonRPCResponse
 from datetime import datetime
@@ -20,6 +21,12 @@ class Query(Method):
     
     def __call__(self, query: str) -> JsonRPCResponse:
         try:
+            # Set and convert Log-Level dynamically
+            if self.log_level:
+                log_level_int = getattr(logging, str(self.log_level).upper(), None)
+                if isinstance(log_level_int, int):
+                    self.plugin.logger.setLevel(log_level_int)
+
             icon = self.plugin.manifest.ico_path
             website = self.plugin.manifest.website
             chat_response = None
@@ -103,6 +110,6 @@ class Query(Method):
                     icon=icon
                 ))
         except Exception as e:
-            self.logger.error(f"Error executing query: {e}")
+            self.plugin.logger.error(f"Error executing query: {e}")
         
         return self.return_results()
