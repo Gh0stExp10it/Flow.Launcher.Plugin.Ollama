@@ -1,6 +1,6 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.5
 Name: pydantic
-Version: 2.13.4
+Version: 2.13.5
 Summary: Data validation using Python type hints
 Project-URL: Homepage, https://github.com/pydantic/pydantic
 Project-URL: Documentation, https://docs.pydantic.dev
@@ -31,7 +31,7 @@ Classifier: Topic :: Internet
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Requires-Python: >=3.9
 Requires-Dist: annotated-types>=0.6.0
-Requires-Dist: pydantic-core==2.46.4
+Requires-Dist: pydantic-core==2.46.5
 Requires-Dist: typing-extensions>=4.14.1
 Requires-Dist: typing-inspection>=0.4.2
 Provides-Extra: email
@@ -116,6 +116,19 @@ See our [security policy](https://github.com/pydantic/pydantic/security/policy).
 <!-- markdownlint-disable no-bare-urls -->
 <!-- markdownlint-disable descriptive-link-text -->
 <!-- markdownlint-disable-next-line first-line-heading -->
+
+## v2.13.5 (2026-08-28)
+
+[GitHub release](https://github.com/pydantic/pydantic/releases/tag/v2.13.5)
+
+### What's Changed
+
+#### Fixes
+
+* Allow reuse of validators when plugins are set by [@Viicos](https://github.com/Viicos) in [#13535](https://github.com/pydantic/pydantic/pull/13535)
+* Fix missing GC traversal on some `pydantic-core` struct fields by [@Viicos](https://github.com/Viicos) in [#13624](https://github.com/pydantic/pydantic/pull/13624)
+* Fix missing GC traversal in `pydantic-core` for `GeneralFieldsSerializer` by [@Viicos](https://github.com/Viicos) in [#13629](https://github.com/pydantic/pydantic/pull/13629)
+* Count validated model fields once in smart unions by [@tamird](https://github.com/tamird) in [#13731](https://github.com/pydantic/pydantic/pull/13731)
 
 ## v2.13.4 (2026-05-06)
 

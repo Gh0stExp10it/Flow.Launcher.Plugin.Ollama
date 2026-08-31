@@ -2,9 +2,9 @@
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
   "version": 1,
-  "serialNumber": "urn:uuid:7ecc29e1-992b-4e33-a0ac-84418512570a",
+  "serialNumber": "urn:uuid:2036ce03-8594-4419-a0ad-777c1bc50691",
   "metadata": {
-    "timestamp": "2026-05-06T08:32:21.371922000Z",
+    "timestamp": "2026-08-28T09:14:03.269984600Z",
     "tools": [
       {
         "vendor": "CycloneDX",
@@ -14,16 +14,16 @@
     ],
     "component": {
       "type": "library",
-      "bom-ref": "path+file:///D:/a/pydantic/pydantic/pydantic-core#2.46.4",
+      "bom-ref": "path+file:///D:/a/pydantic/pydantic/pydantic-core#2.46.5",
       "name": "pydantic-core",
-      "version": "2.46.4",
+      "version": "2.46.5",
       "scope": "required",
       "licenses": [
         {
           "expression": "MIT"
         }
       ],
-      "purl": "pkg:cargo/pydantic-core@2.46.4?download_url=file://.",
+      "purl": "pkg:cargo/pydantic-core@2.46.5?download_url=file://.",
       "externalReferences": [
         {
           "type": "website",
@@ -37,10 +37,10 @@
       "components": [
         {
           "type": "library",
-          "bom-ref": "path+file:///D:/a/pydantic/pydantic/pydantic-core#2.46.4 bin-target-0",
+          "bom-ref": "path+file:///D:/a/pydantic/pydantic/pydantic-core#2.46.5 bin-target-0",
           "name": "_pydantic_core",
-          "version": "2.46.4",
-          "purl": "pkg:cargo/pydantic-core@2.46.4?download_url=file://.#src/lib.rs"
+          "version": "2.46.5",
+          "purl": "pkg:cargo/pydantic-core@2.46.5?download_url=file://.#src/lib.rs"
         }
       ]
     },
@@ -3289,7 +3289,7 @@
   ],
   "dependencies": [
     {
-      "ref": "path+file:///D:/a/pydantic/pydantic/pydantic-core#2.46.4",
+      "ref": "path+file:///D:/a/pydantic/pydantic/pydantic-core#2.46.5",
       "dependsOn": [
         "registry+https://github.com/rust-lang/crates.io-index#ahash@0.8.12",
         "registry+https://github.com/rust-lang/crates.io-index#base64@0.22.1",

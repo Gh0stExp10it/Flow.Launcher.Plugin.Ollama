@@ -1,11 +1,12 @@
-Metadata-Version: 2.3
+Metadata-Version: 2.4
 Name: annotated-types
-Version: 0.7.0
+Version: 0.8.0
 Summary: Reusable constraint types to use with typing.Annotated
 Project-URL: Homepage, https://github.com/annotated-types/annotated-types
 Project-URL: Source, https://github.com/annotated-types/annotated-types
 Project-URL: Changelog, https://github.com/annotated-types/annotated-types/releases
 Author-email: Adrian Garcia Badaracco <1755071+adriangb@users.noreply.github.com>, Samuel Colvin <s@muelcolvin.com>, Zac Hatfield-Dodds <zac@zhd.dev>
+License-Expression: MIT
 License-File: LICENSE
 Classifier: Development Status :: 4 - Beta
 Classifier: Environment :: Console
@@ -16,15 +17,14 @@ Classifier: License :: OSI Approved :: MIT License
 Classifier: Operating System :: POSIX :: Linux
 Classifier: Operating System :: Unix
 Classifier: Programming Language :: Python :: 3 :: Only
-Classifier: Programming Language :: Python :: 3.8
-Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Classifier: Typing :: Typed
-Requires-Python: >=3.8
-Requires-Dist: typing-extensions>=4.0.0; python_version < '3.9'
+Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 
 # annotated-types
@@ -125,9 +125,9 @@ and `Len(max_length=y)` respectively.
 
 Examples of usage:
 
-* `Annotated[list, MaxLen(10)]` (or `Annotated[list, Len(max_length=10))`) - list must have a length of 10 or less
+* `Annotated[list, MaxLen(10)]` (or `Annotated[list, Len(max_length=10)]`) - list must have a length of 10 or less
 * `Annotated[str, MaxLen(10)]` - string must have a length of 10 or less
-* `Annotated[list, MinLen(3))` (or `Annotated[list, Len(min_length=3))`) - list must have a length of 3 or more
+* `Annotated[list, MinLen(3)]` (or `Annotated[list, Len(min_length=3)]`) - list must have a length of 3 or more
 * `Annotated[list, Len(4, 6)]` - list must have a length of 4, 5, or 6
 * `Annotated[list, Len(8, 8)]` - list must have a length of exactly 8
 
@@ -205,8 +205,8 @@ the full power and flexibility of arbitrary runtime predicates... here it is.
 
 For some common constraints, we provide generic types:
 
-* `IsLower       = Annotated[T, Predicate(str.islower)]`
-* `IsUpper       = Annotated[T, Predicate(str.isupper)]`
+* `LowerCase     = Annotated[T, Predicate(str.islower)]`
+* `UpperCase     = Annotated[T, Predicate(str.isupper)]`
 * `IsDigit       = Annotated[T, Predicate(str.isdigit)]`
 * `IsFinite      = Annotated[T, Predicate(math.isfinite)]`
 * `IsNotFinite   = Annotated[T, Predicate(Not(math.isfinite))]`

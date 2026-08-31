@@ -1,10 +1,10 @@
-pyflowlauncher-1.1.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
-pyflowlauncher-1.1.0.dist-info/METADATA,sha256=WEyFjupQEL-pTpjCjXU3Rh_9DcZ5XSpDospW4obtdz4,3392
-pyflowlauncher-1.1.0.dist-info/RECORD,,
-pyflowlauncher-1.1.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
-pyflowlauncher-1.1.0.dist-info/WHEEL,sha256=K260EYznzXsJYBQGqmI8VTxEdiZYNvDZwW9cBh9-_MA,91
-pyflowlauncher-1.1.0.dist-info/licenses/LICENSE,sha256=SD7Tj2KIjn3CFI5F_8b74YII3w5KjUhNFfxNhLbe21c,1075
-pyflowlauncher-1.1.0.dist-info/top_level.txt,sha256=pVv2dM3kerwunsPWgrmRGSZ41-Rvv2AP-VNaAdoUv_M,15
+pyflowlauncher-1.1.1.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+pyflowlauncher-1.1.1.dist-info/METADATA,sha256=xvZApObeewO-rtTGhZPpHfQBmhp8vlU8vwPDJDTQ1BU,3392
+pyflowlauncher-1.1.1.dist-info/RECORD,,
+pyflowlauncher-1.1.1.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+pyflowlauncher-1.1.1.dist-info/WHEEL,sha256=YVMoNqKzERt-wjUZwJ33xBGAwnFl-4cqbYkTtWa4itE,91
+pyflowlauncher-1.1.1.dist-info/licenses/LICENSE,sha256=SD7Tj2KIjn3CFI5F_8b74YII3w5KjUhNFfxNhLbe21c,1075
+pyflowlauncher-1.1.1.dist-info/top_level.txt,sha256=pVv2dM3kerwunsPWgrmRGSZ41-Rvv2AP-VNaAdoUv_M,15
 pyflowlauncher/__init__.py,sha256=pZFsxvqSwST1-rdEnqRhiLw7hH1dFh1Vh-8f592yAXk,386
 pyflowlauncher/__pycache__/__init__.cpython-310.pyc,,
 pyflowlauncher/__pycache__/api.cpython-310.pyc,,
@@ -27,7 +27,7 @@ pyflowlauncher/base.py,sha256=D89_9eSxKAPMNR6zbuNcAqX896g8vS2498s3MjKQy3o,678
 pyflowlauncher/event.py,sha256=xGSD8tDLkmBDV-1Gyvwqynp-UYv3VmAYmv4Adg8tfJ4,2316
 pyflowlauncher/icons.py,sha256=EQ83x-5vRbQrkIikXqcZjDBruEkcwy1YebUHL89_5sk,4246
 pyflowlauncher/jsonrpc.py,sha256=tGwfFRjKPUiwD2B6mQvLXiMC0RxHfp0W32kfSCWs-6w,3181
-pyflowlauncher/launcher.py,sha256=XFP2S64tDQ7BZMDfYZl4bWvh6fvokdl4K3JyXVDWspc,7849
+pyflowlauncher/launcher.py,sha256=cGf4V3B9nhqtpJm-Vla_CqQi2Xy2zhvIVd1zk9qID1E,9105
 pyflowlauncher/manifest.py,sha256=i_M4Pysp7cHkaf00S6lyEDJNtosZ_J4yYtiCaf7rvLc,2558
 pyflowlauncher/method.py,sha256=IwTfqn5HR7bZ5OLb5OKeXQhjw29C4FVGSw6kGC_xtBY,742
 pyflowlauncher/models/__init__.py,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
