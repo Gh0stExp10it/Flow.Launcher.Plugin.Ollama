@@ -1,30 +1,21 @@
 import math
-import sys
 import types
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import tzinfo
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Optional, SupportsFloat, SupportsIndex, TypeVar, Union
-
-if sys.version_info < (3, 8):
-    from typing_extensions import Protocol, runtime_checkable
-else:
-    from typing import Protocol, runtime_checkable
-
-if sys.version_info < (3, 9):
-    from typing_extensions import Annotated, Literal
-else:
-    from typing import Annotated, Literal
-
-if sys.version_info < (3, 10):
-    EllipsisType = type(Ellipsis)
-    KW_ONLY = {}
-    SLOTS = {}
-else:
-    from types import EllipsisType
-
-    KW_ONLY = {"kw_only": True}
-    SLOTS = {"slots": True}
-
+from types import EllipsisType
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    Literal,
+    Protocol,
+    SupportsFloat,
+    SupportsIndex,
+    TypeVar,
+    Union,
+    runtime_checkable,
+)
 
 __all__ = (
     'BaseMetadata',
@@ -54,7 +45,7 @@ __all__ = (
     '__version__',
 )
 
-__version__ = '0.7.0'
+__version__ = '0.8.0'
 
 
 T = TypeVar('T')
@@ -105,7 +96,7 @@ class BaseMetadata:
     __slots__ = ()
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class Gt(BaseMetadata):
     """Gt(gt=x) implies that the value must be greater than x.
 
@@ -116,7 +107,7 @@ class Gt(BaseMetadata):
     gt: SupportsGt
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class Ge(BaseMetadata):
     """Ge(ge=x) implies that the value must be greater than or equal to x.
 
@@ -127,7 +118,7 @@ class Ge(BaseMetadata):
     ge: SupportsGe
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class Lt(BaseMetadata):
     """Lt(lt=x) implies that the value must be less than x.
 
@@ -138,7 +129,7 @@ class Lt(BaseMetadata):
     lt: SupportsLt
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class Le(BaseMetadata):
     """Le(le=x) implies that the value must be less than or equal to x.
 
@@ -201,7 +192,7 @@ class GroupedMetadata(Protocol):
             raise NotImplementedError  # more helpful than "None has no attribute..." type errors
 
 
-@dataclass(frozen=True, **KW_ONLY, **SLOTS)
+@dataclass(frozen=True, kw_only=True, slots=True)
 class Interval(GroupedMetadata):
     """Interval can express inclusive or exclusive bounds with a single object.
 
@@ -209,10 +200,10 @@ class Interval(GroupedMetadata):
     are interpreted the same way as the single-bound constraints.
     """
 
-    gt: Union[SupportsGt, None] = None
-    ge: Union[SupportsGe, None] = None
-    lt: Union[SupportsLt, None] = None
-    le: Union[SupportsLe, None] = None
+    gt: SupportsGt | None = None
+    ge: SupportsGe | None = None
+    lt: SupportsLt | None = None
+    le: SupportsLe | None = None
 
     def __iter__(self) -> Iterator[BaseMetadata]:
         """Unpack an Interval into zero or more single-bounds."""
@@ -226,7 +217,7 @@ class Interval(GroupedMetadata):
             yield Le(self.le)
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class MultipleOf(BaseMetadata):
     """MultipleOf(multiple_of=x) might be interpreted in two ways:
 
@@ -237,10 +228,10 @@ class MultipleOf(BaseMetadata):
     and libraries to carefully document which they implement.
     """
 
-    multiple_of: Union[SupportsDiv, SupportsMod]
+    multiple_of: SupportsDiv | SupportsMod
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class MinLen(BaseMetadata):
     """
     MinLen() implies minimum inclusive length,
@@ -250,7 +241,7 @@ class MinLen(BaseMetadata):
     min_length: Annotated[int, Ge(0)]
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class MaxLen(BaseMetadata):
     """
     MaxLen() implies maximum inclusive length,
@@ -260,7 +251,7 @@ class MaxLen(BaseMetadata):
     max_length: Annotated[int, Ge(0)]
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class Len(GroupedMetadata):
     """
     Len() implies that ``min_length <= len(value) <= max_length``.
@@ -269,22 +260,22 @@ class Len(GroupedMetadata):
     """
 
     min_length: Annotated[int, Ge(0)] = 0
-    max_length: Optional[Annotated[int, Ge(0)]] = None
+    max_length: Annotated[int, Ge(0)] | None = None
 
     def __iter__(self) -> Iterator[BaseMetadata]:
-        """Unpack a Len into zone or more single-bounds."""
+        """Unpack a Len into zero or more single-bounds."""
         if self.min_length > 0:
             yield MinLen(self.min_length)
         if self.max_length is not None:
             yield MaxLen(self.max_length)
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class Timezone(BaseMetadata):
     """Timezone(tz=...) requires a datetime to be aware (or ``tz=None``, naive).
 
     ``Annotated[datetime, Timezone(None)]`` must be a naive datetime.
-    ``Timezone[...]`` (the ellipsis literal) expresses that the datetime must be
+    ``Timezone(...)`` (the ellipsis literal) expresses that the datetime must be
     tz-aware but any timezone is allowed.
 
     You may also pass a specific timezone string or tzinfo object such as
@@ -293,10 +284,10 @@ class Timezone(BaseMetadata):
     a symptom of poor design.
     """
 
-    tz: Union[str, tzinfo, EllipsisType, None]
+    tz: str | tzinfo | EllipsisType | None
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class Unit(BaseMetadata):
     """Indicates that the value is a physical quantity with the specified unit.
 
@@ -319,7 +310,7 @@ class Unit(BaseMetadata):
     unit: str
 
 
-@dataclass(frozen=True, **SLOTS)
+@dataclass(frozen=True, slots=True)
 class Predicate(BaseMetadata):
     """``Predicate(func: Callable)`` implies `func(value)` is truthy for valid values.
 
@@ -327,7 +318,7 @@ class Predicate(BaseMetadata):
     power and flexibility of arbitrary runtime predicates... here it is.
 
     We provide a few predefined predicates for common string constraints:
-    ``IsLower = Predicate(str.islower)``, ``IsUpper = Predicate(str.isupper)``, and
+    ``LowerCase = Predicate(str.islower)``, ``UpperCase = Predicate(str.isupper)``, and
     ``IsDigits = Predicate(str.isdigit)``. Users are encouraged to use methods which
     can be given special handling, and avoid indirection like ``lambda s: s.lower()``.
 
@@ -406,11 +397,12 @@ IsNotInfinite = Annotated[_NumericType, Predicate(Not(math.isinf))]
 """Return True if x is neither a positive or negative infinity, and False otherwise."""
 
 try:
-    from typing_extensions import DocInfo, doc  # type: ignore [attr-defined]
+    # PEP 727 – Documentation in Annotated Metadata
+    from typing_extensions import Doc  # type: ignore[attr-defined]
 except ImportError:
 
-    @dataclass(frozen=True, **SLOTS)
-    class DocInfo:  # type: ignore [no-redef]
+    @dataclass(frozen=True, slots=True)
+    class Doc:  # type: ignore [no-redef]
         """ "
         The return value of doc(), mainly to be used by tools that want to extract the
         Annotated documentation at runtime.
@@ -419,14 +411,6 @@ except ImportError:
         documentation: str
         """The documentation string passed to doc()."""
 
-    def doc(
-        documentation: str,
-    ) -> DocInfo:
-        """
-        Add documentation to a type annotation inside of Annotated.
 
-        For example:
-
-        >>> def hi(name: Annotated[int, doc("The name of the user")]) -> None: ...
-        """
-        return DocInfo(documentation)
+DocInfo = Doc  # backwards compatibility
+doc = Doc

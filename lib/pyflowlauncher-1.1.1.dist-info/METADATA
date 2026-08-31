@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: pyflowlauncher
-Version: 1.1.0
+Version: 1.1.1
 Summary: Python library to help build Flow Launcher plugins.
 Author-email: William McAllister <dev.garulf@gmail.com>
 License: MIT

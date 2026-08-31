@@ -7,9 +7,9 @@ import types
 from collections.abc import Generator
 from dataclasses import InitVar
 from enum import Enum, IntEnum, auto
-from typing import Any, Literal, NamedTuple, cast
+from typing import Any, Literal, NamedTuple, TypeAlias, cast
 
-from typing_extensions import TypeAlias, assert_never, get_args, get_origin
+from typing_extensions import assert_never, get_args, get_origin  # noqa: UP035
 
 from . import typing_objects
 
@@ -23,7 +23,7 @@ __all__ = (
     'is_union_origin',
 )
 
-if sys.version_info >= (3, 14) or sys.version_info < (3, 10):
+if sys.version_info >= (3, 14):
 
     def is_union_origin(obj: Any, /) -> bool:
         """Return whether the provided origin is the union form.
@@ -91,12 +91,12 @@ else:
         return typing_objects.is_union(obj) or obj is types.UnionType
 
 
+_literal_allowed_types = int | bytes | str | bool | Enum | typing_objects.NoneType
+
+
 def _literal_type_check(value: Any, /) -> None:
     """Type check the provided literal value against the legal parameters."""
-    if (
-        not isinstance(value, (int, bytes, str, bool, Enum, typing_objects.NoneType))
-        and value is not typing_objects.NoneType
-    ):
+    if not isinstance(value, _literal_allowed_types) and value is not typing_objects.NoneType:
         raise TypeError(f'{value} is not a valid literal value, must be one of: int, bytes, str, Enum, None.')
 
 
@@ -356,14 +356,14 @@ class _UnknownTypeEnum(Enum):
 UNKNOWN = _UnknownTypeEnum.UNKNOWN
 """A sentinel value used when no [type expression][] is present."""
 
-_UnkownType: TypeAlias = Literal[_UnknownTypeEnum.UNKNOWN]
+_UnknownType: TypeAlias = Literal[_UnknownTypeEnum.UNKNOWN]
 """The type of the [`UNKNOWN`][typing_inspection.introspection.UNKNOWN] sentinel value."""
 
 
 class InspectedAnnotation(NamedTuple):
     """The result of the inspected annotation."""
 
-    type: Any | _UnkownType
+    type: Any | _UnknownType
     """The final [type expression][], with [type qualifiers][type qualifier] and annotated metadata stripped.
 
     If no type expression is available, the [`UNKNOWN`][typing_inspection.introspection.UNKNOWN] sentinel
