@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Generator, Union
+from typing import Any, Generator, Optional, Union
 
+from .command import Command
 from .result import Result, send_results
 from .models.json_rpc import JsonRPCRequest, JsonRPCResponse
 
 
-def handle_response(result: Any) -> Union[JsonRPCResponse, JsonRPCRequest, None]:
+def handle_response(result: Any) -> Union[JsonRPCResponse, JsonRPCRequest, Command, None]:
     """Normalize a method's return value into a JSON-RPC response.
 
     Accepts: Result, list of Result, generator of Result/list, JsonRPCRequest,
@@ -33,8 +34,14 @@ def _collect_item(item: Any) -> list[Result]:
     return []
 
 
-def _collect_generator(gen: Generator) -> JsonRPCResponse:
+def _collect_generator(gen: Generator[Any, Any, Any]) -> Union[JsonRPCResponse, Command]:
     results = []
+    command: Optional[Command] = None
     for item in gen:
+        if isinstance(item, Command):
+            command = item
+            continue
         results.extend(_collect_item(item))
+    if command is not None:
+        return command
     return send_results(results)

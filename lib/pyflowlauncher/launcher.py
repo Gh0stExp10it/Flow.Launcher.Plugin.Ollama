@@ -6,12 +6,20 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from .api import NAME_SPACE, Api
+from .api import NAME_SPACE, Api, NotSupportedError
 from .base import pyFlowLauncherObject
+from .command import Command
 from .icons import Icons
 from .jsonrpc import JsonRPCClient, JsonRPCV2Client
 from .models.json_rpc import MatchResult
 from .string_matcher import MatchData, string_matcher as _local_string_matcher
+
+
+def _host_method(method: str) -> str:
+    # The host registers JsonRPCPublicAPI under bare CLR method names
+    # (OpenAppUri, not Flow.Launcher.OpenAppUri), so strip the namespace.
+    prefix = f'{NAME_SPACE}.'
+    return method[len(prefix):] if method.startswith(prefix) else method
 
 
 class Launcher(pyFlowLauncherObject, ABC):
@@ -19,13 +27,20 @@ class Launcher(pyFlowLauncherObject, ABC):
     def __init__(self) -> None:
         super().__init__()
         self._settings: dict = {}
-        self.api = Api(fuzzy_search_fn=self._fuzzy_search)
+        self.api = Api(fuzzy_search_fn=self._fuzzy_search, invoke_fn=self._invoke)
         self._program_dir: Optional[Path] = self._find_program_dir()
         self.icons = Icons(self._program_dir)
 
     async def _fuzzy_search(self, query: str, text: str) -> MatchData:
         """Local fallback matcher; subclasses may delegate to the host."""
         return _local_string_matcher(query, text)
+
+    async def _invoke(self, command: Command) -> Any:
+        """Send a command to the host; V1 cannot push, so this is unsupported."""
+        raise NotSupportedError(
+            "invoke requires Flow Launcher V2; attach the command to a Result "
+            "with add_action(), or return it, instead."
+        )
 
     @property
     def settings(self) -> dict:
@@ -92,6 +107,11 @@ class FlowLauncherV2(Launcher):
             index_list=result.get('matchData') or [],
             score=result.get('score', 0),
         )
+
+    async def _invoke(self, command: Command) -> Any:
+        """Send the command over JSON-RPC and return Flow Launcher's response."""
+        return await self._client.request(
+            _host_method(command['Method']), command['Parameters'])
 
     async def run(self, dispatch: Callable[[str, list], Awaitable[Any]]) -> None:
         tasks: set = set()
@@ -189,19 +209,40 @@ class FlowLauncherV2(Launcher):
                 'result': [], 'debugMessage': 'Internal error', 'settingsChange': None,
             })
             return
+        if isinstance(result, dict) and 'Method' in result:
+            # An action method returned an api Command (or the raw request
+            # dict older releases produced). V1 hosts execute a request the
+            # action writes to stdout, but a V2 host only reads the result as
+            # JsonRPCExecuteResponse, so the command must be sent as our own
+            # request instead of being dropped.
+            try:
+                await self._forward_to_host(result['Method'], list(result.get('Parameters', [])))
+            except asyncio.CancelledError:
+                self._client.send({'id': request_id, 'result': None, 'error': {
+                    'code': -32800, 'message': 'Request cancelled',
+                }})
+                raise
+            self._respond(request_id, {'hide': True})
+            return
         self._send_response(request_id, method, result)
 
     async def _handle_builtin_action(self, request_id: Any, method: str, params: list) -> None:
         try:
-            await self._client.request(method, params)
+            await self._forward_to_host(method, params)
         except asyncio.CancelledError:
             self._client.send({'id': request_id, 'result': None, 'error': {
                 'code': -32800, 'message': 'Request cancelled',
             }})
             raise
-        except Exception:
-            self.logger.exception("Failed to forward built-in action %r to the host", method)
         self._respond(request_id, {'hide': True})
+
+    async def _forward_to_host(self, method: str, params: list) -> None:
+        try:
+            await self._client.request(_host_method(method), params)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            self.logger.exception("Failed to forward action %r to the host", method)
 
     def _respond(self, request_id: Any, result: Any) -> None:
         """Send a response in the uniform {id, result, error} envelope."""

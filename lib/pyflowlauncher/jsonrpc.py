@@ -14,6 +14,13 @@ else:
 _logger = logging.getLogger(__name__)
 
 
+def _json_default(o: Any) -> Any:
+    to_json = getattr(o, 'to_json', None)
+    if callable(to_json):
+        return to_json()
+    raise TypeError(f"Object of type {type(o).__name__} is not JSON serializable")
+
+
 class JsonRPCRequest(TypedDict):
     method: str
     parameters: list
@@ -23,7 +30,7 @@ class JsonRPCRequest(TypedDict):
 class JsonRPCClient:
 
     def send(self, data: Mapping) -> None:
-        json.dump(data, sys.stdout)
+        json.dump(data, sys.stdout, default=_json_default)
 
     def recieve(self) -> JsonRPCRequest:
         try:
@@ -98,5 +105,5 @@ class JsonRPCV2Client:
             self._pending.pop(req_id, None)
 
     def send(self, data: dict) -> None:
-        sys.stdout.write(json.dumps(data) + '\n')
+        sys.stdout.write(json.dumps(data, default=_json_default) + '\n')
         sys.stdout.flush()

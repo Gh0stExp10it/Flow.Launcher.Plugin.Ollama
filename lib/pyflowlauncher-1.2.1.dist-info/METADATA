@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: pyflowlauncher
-Version: 1.1.1
+Version: 1.2.1
 Summary: Python library to help build Flow Launcher plugins.
 Author-email: William McAllister <dev.garulf@gmail.com>
 License: MIT
@@ -92,4 +92,43 @@ class Query(Method):
 
 plugin.add_method(Query())
 plugin.run()
+```
+
+### Context menus
+
+`Plugin` ships with a built-in `context_menu` method: put `Result` objects in a
+result's `context_data` and they become that result's context menu — no handler
+code required.
+
+```py
+from pyflowlauncher import Plugin, Result
+
+plugin = Plugin()
+
+
+@plugin.on_method
+def query(query: str):
+    yield Result(
+        title="This is a title!",
+        subtitle="Right-click me for a context menu.",
+        context_data=[
+            Result(title="This is a context menu item!"),
+            Result(title="So is this!"),
+        ],
+    )
+
+
+plugin.run()
+```
+
+Menu items are full `Result` objects, so they can carry actions via
+`add_action()` just like query results.
+
+If you need more control (for example, building the menu lazily when it is
+opened), register your own `context_menu` — it replaces the built-in one:
+
+```py
+@plugin.on_method
+def context_menu(context_data):
+    yield Result(title=f"Menu for {context_data[0]}")
 ```
