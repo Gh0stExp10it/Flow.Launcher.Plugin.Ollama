@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Iterable as IterableABC
 from functools import cached_property, wraps
 from typing import Any, Callable, Iterable, Optional, Type, List
 from pathlib import Path
@@ -13,11 +14,31 @@ from .event import EventHandler
 from .launcher import Launcher, FlowLauncherV1, FlowLauncherV2
 from .jsonrpc import JsonRPCRequest
 from .response import handle_response
+from .result import Result
 from .models.plugin_manifest import FILE_NAME
 from .manifest import Manifest
 
 
 from .types import Method
+
+
+def _default_context_menu(context_data):
+    """Rebuild the menu Results a plugin front-loaded into a result's context_data.
+
+    Flow Launcher echoes ContextData back as parsed JSON, so serialized Results
+    arrive as dicts; anything else in context_data is skipped.
+    """
+    if isinstance(context_data, Result):
+        return [context_data]
+    if isinstance(context_data, (str, bytes, dict)) or not isinstance(context_data, IterableABC):
+        return None
+    results = []
+    for item in context_data:
+        if isinstance(item, Result):
+            results.append(item)
+        elif isinstance(item, dict) and 'Title' in item:
+            results.append(Result.from_json(item))
+    return results
 
 
 class Plugin(pyFlowLauncherObject):
@@ -26,6 +47,7 @@ class Plugin(pyFlowLauncherObject):
         super().__init__()
         self._launcher: Launcher = launcher if launcher is not None else self._detect_launcher()
         self._event_handler = EventHandler()
+        self.add_method(_default_context_menu, name='context_menu')
         if methods:
             self.add_methods(methods)
 
@@ -40,14 +62,14 @@ class Plugin(pyFlowLauncherObject):
                 "Malformed plugin manifest; defaulting to V1 launcher.", exc_info=True)
         return FlowLauncherV1()
 
-    def add_method(self, method: Method) -> str:
-        """Add a method to the event handler."""
+    def add_method(self, method: Method, *, name: Optional[str] = None) -> str:
+        """Add a method to the event handler, optionally under an explicit RPC name."""
         @wraps(method)
         def wrapper(*args, **kwargs):
             return handle_response(method(*args, **kwargs))
         setattr(wrapper, '_is_registered_method', True)
         setattr(method, '_is_registered_method', True)
-        return self._event_handler.add_event(wrapper)
+        return self._event_handler.add_event(wrapper, name=name)
 
     def add_methods(self, methods: Iterable[Method]) -> None:
         for method in methods:
