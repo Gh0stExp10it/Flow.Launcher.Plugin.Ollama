@@ -197,11 +197,7 @@ class FlowLauncherV2(Launcher):
         try:
             result = await dispatch(method, params)
         except asyncio.CancelledError:
-            # StreamJsonRpc's RequestCanceled error; the host discards it, but
-            # answering every request keeps the envelope contract uniform.
-            self._client.send({'id': request_id, 'result': None, 'error': {
-                'code': -32800, 'message': 'Request cancelled',
-            }})
+            self._respond_cancelled(request_id)
             raise
         except Exception:
             self.logger.exception("Unhandled error dispatching %r", method)
@@ -218,9 +214,7 @@ class FlowLauncherV2(Launcher):
             try:
                 await self._forward_to_host(result['Method'], list(result.get('Parameters', [])))
             except asyncio.CancelledError:
-                self._client.send({'id': request_id, 'result': None, 'error': {
-                    'code': -32800, 'message': 'Request cancelled',
-                }})
+                self._respond_cancelled(request_id)
                 raise
             self._respond(request_id, {'hide': True})
             return
@@ -230,9 +224,7 @@ class FlowLauncherV2(Launcher):
         try:
             await self._forward_to_host(method, params)
         except asyncio.CancelledError:
-            self._client.send({'id': request_id, 'result': None, 'error': {
-                'code': -32800, 'message': 'Request cancelled',
-            }})
+            self._respond_cancelled(request_id)
             raise
         self._respond(request_id, {'hide': True})
 
@@ -245,8 +237,17 @@ class FlowLauncherV2(Launcher):
             self.logger.exception("Failed to forward action %r to the host", method)
 
     def _respond(self, request_id: Any, result: Any) -> None:
-        """Send a response in the uniform {id, result, error} envelope."""
+        """Send a successful response; errors go through _respond_error."""
         self._client.send({'id': request_id, 'result': result, 'error': None})
+
+    def _respond_error(self, request_id: Any, code: int, message: str) -> None:
+        # StreamJsonRpc checks 'result' before 'error': any 'result' member,
+        # even null, turns the reply into a successful null response, which
+        # makes the host's ParseResults throw a NullReferenceException.
+        self._client.send({'id': request_id, 'error': {'code': code, 'message': message}})
+
+    def _respond_cancelled(self, request_id: Any) -> None:
+        self._respond_error(request_id, -32800, 'Request cancelled')
 
     def _send_response(self, request_id: Any, method: str, result: Any) -> None:
         if result is None:

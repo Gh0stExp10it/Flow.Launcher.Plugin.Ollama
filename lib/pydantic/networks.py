@@ -1,4 +1,36 @@
-"""The networks module contains types for common network-related fields."""
+"""The networks module contains types for common network-related fields.
+
+/// version-added | v2.12
+By default, validation of URL types add a trailing slash if no path is present:
+
+```python
+from pydantic import AnyUrl, BaseModel
+
+class Model(BaseModel):
+    url: AnyUrl
+
+m = Model(url='https://example.com')
+print(m.url)
+#> https://example.com/
+```
+
+The [`url_preserve_empty_path`][pydantic.ConfigDict.url_preserve_empty_path] config option can be used
+to control this behavior:
+
+```python
+from pydantic import AnyUrl, BaseModel, ConfigDict
+
+class Model(BaseModel):
+    model_config = ConfigDict(url_preserve_empty_path=True)
+
+    url: AnyUrl
+
+m = Model(url='https://example.com')
+print(m.url)
+#> https://example.com
+```
+///
+"""
 
 from __future__ import annotations as _annotations
 
@@ -8,7 +40,7 @@ from dataclasses import fields
 from functools import lru_cache
 from importlib.metadata import version
 from ipaddress import IPv4Address, IPv4Interface, IPv4Network, IPv6Address, IPv6Interface, IPv6Network
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, TypeAlias, overload
 
 from pydantic_core import (
     MultiHostHost,
@@ -19,7 +51,7 @@ from pydantic_core import (
 )
 from pydantic_core import MultiHostUrl as _CoreMultiHostUrl
 from pydantic_core import Url as _CoreUrl
-from typing_extensions import Self, TypeAlias
+from typing_extensions import Self
 
 from pydantic.errors import PydanticUserError
 
@@ -158,7 +190,7 @@ class _BaseUrl:
     def host(self) -> str | None:
         """The host part of the URL, or `None`.
 
-        If the URL must be punycode encoded, this is the encoded host, e.g if the input URL is `https://£££.com`,
+        If the URL must be punycode encoded, this is the encoded host, e.g. if the input URL is `https://£££.com`,
         `host` will be `xn--9aaa.com`
         """
         return self._url.host
@@ -168,7 +200,7 @@ class _BaseUrl:
 
         e.g. `host` in `https://user:pass@host:port/path?query#fragment`
 
-        If the URL must be punycode encoded, this is the decoded host, e.g if the input URL is `https://£££.com`,
+        If the URL must be punycode encoded, this is the decoded host, e.g. if the input URL is `https://£££.com`,
         `unicode_host()` will be `£££.com`
         """
         return self._url.unicode_host()
@@ -215,7 +247,7 @@ class _BaseUrl:
     def unicode_string(self) -> str:
         """The URL as a unicode string, unlike `__str__()` this will not punycode encode the host.
 
-        If the URL must be punycode encoded, this is the decoded string, e.g if the input URL is `https://£££.com`,
+        If the URL must be punycode encoded, this is the decoded string, e.g. if the input URL is `https://£££.com`,
         `unicode_string()` will be `https://£££.com`
         """
         return self._url.unicode_string()
@@ -238,19 +270,29 @@ class _BaseUrl:
         return self.__class__(self._url)
 
     def __eq__(self, other: Any) -> bool:
-        return self.__class__ is other.__class__ and self._url == other._url
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return self._url == other._url
 
     def __lt__(self, other: Any) -> bool:
-        return self.__class__ is other.__class__ and self._url < other._url
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return self._url < other._url
 
     def __gt__(self, other: Any) -> bool:
-        return self.__class__ is other.__class__ and self._url > other._url
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return self._url > other._url
 
     def __le__(self, other: Any) -> bool:
-        return self.__class__ is other.__class__ and self._url <= other._url
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return self._url <= other._url
 
     def __ge__(self, other: Any) -> bool:
-        return self.__class__ is other.__class__ and self._url >= other._url
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return self._url >= other._url
 
     def __hash__(self) -> int:
         return hash(self._url)
@@ -430,7 +472,9 @@ class _BaseMultiHostUrl:
         return self.__class__(self._url)
 
     def __eq__(self, other: Any) -> bool:
-        return self.__class__ is other.__class__ and self._url == other._url
+        if self.__class__ is not other.__class__:
+            return NotImplemented
+        return self._url == other._url
 
     def __hash__(self) -> int:
         return hash(self._url)
@@ -438,6 +482,36 @@ class _BaseMultiHostUrl:
     def __len__(self) -> int:
         return len(str(self._url))
 
+    @classmethod
+    @overload
+    def build(
+        cls,
+        *,
+        scheme: str,
+        hosts: list[MultiHostHost],
+        username: None = None,
+        password: None = None,
+        host: None = None,
+        port: None = None,
+        path: str | None = None,
+        query: str | None = None,
+        fragment: str | None = None,
+    ) -> Self: ...
+    @classmethod
+    @overload
+    def build(
+        cls,
+        *,
+        scheme: str,
+        hosts: None = None,
+        host: str,
+        username: str | None = None,
+        password: str | None = None,
+        port: int | None = None,
+        path: str | None = None,
+        query: str | None = None,
+        fragment: str | None = None,
+    ) -> Self: ...
     @classmethod
     def build(
         cls,
@@ -472,12 +546,12 @@ class _BaseMultiHostUrl:
             An instance of `MultiHostUrl`
         """
         return cls(
-            _CoreMultiHostUrl.build(
+            _CoreMultiHostUrl.build(  # pyright: ignore[reportCallIssue]
                 scheme=scheme,
-                hosts=hosts,
+                hosts=hosts,  # pyright: ignore[reportArgumentType]
                 username=username,
                 password=password,
-                host=host,
+                host=host,  # pyright: ignore[reportArgumentType]
                 port=port,
                 path=path,
                 query=query,
@@ -1266,7 +1340,7 @@ else:
 
 
 def _build_pretty_email_regex() -> re.Pattern[str]:
-    name_chars = r'[\w!#$%&\'*+\-/=?^_`{|}~]'
+    name_chars = r'[\w.!#$%&\'*+\-/=?^_`{|}~]'
     unquoted_name_group = rf'((?:{name_chars}+\s+)*{name_chars}+)'
     quoted_name_group = r'"((?:[^"]|\")+)"'
     email_group = r'<(.+)>'
@@ -1306,6 +1380,17 @@ def validate_email(value: str) -> tuple[str, str]:
             'value_error',
             'value is not a valid email address: {reason}',
             {'reason': f'Length must not exceed {MAX_EMAIL_LENGTH} characters'},
+        )
+
+    # Carriage returns and line feeds are only allowed in a header field body as part of "folding"
+    # (a CRLF immediately followed by whitespace), which is unfolded before the value is parsed
+    # (see https://www.rfc-editor.org/info/rfc5322/#section-2.2). A `NameEmail` is a standalone value
+    # rather than a folded header line, so any CR or LF is rejected.
+    if '\r' in value or '\n' in value:
+        raise PydanticCustomError(
+            'value_error',
+            'value is not a valid email address: {reason}',
+            {'reason': 'Carriage return and line feed characters are not allowed'},
         )
 
     m = pretty_email_regex.fullmatch(value)

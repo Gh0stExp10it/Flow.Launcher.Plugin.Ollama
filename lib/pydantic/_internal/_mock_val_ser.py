@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
-from typing import TYPE_CHECKING, Any, Callable, Generic, Literal, TypeVar, Union
+from collections.abc import Callable, Iterator, Mapping
+from typing import TYPE_CHECKING, Any, Generic, Literal, Protocol, TypeVar
 
 from pydantic_core import CoreSchema, SchemaSerializer, SchemaValidator
 
@@ -14,8 +14,13 @@ if TYPE_CHECKING:
     from ..type_adapter import TypeAdapter
 
 
-ValSer = TypeVar('ValSer', bound=Union[SchemaValidator, PluggableSchemaValidator, SchemaSerializer])
+ValSer = TypeVar('ValSer', bound=SchemaValidator | PluggableSchemaValidator | SchemaSerializer)
 T = TypeVar('T')
+T_co = TypeVar('T_co', covariant=True)
+
+
+class AttemptRebuild(Protocol[T_co]):
+    def __call__(self, *, parent_namespace_depth: int = ...) -> T_co | None: ...
 
 
 class MockCoreSchema(Mapping[str, Any]):
@@ -30,7 +35,7 @@ class MockCoreSchema(Mapping[str, Any]):
         error_message: str,
         *,
         code: PydanticErrorCodes,
-        attempt_rebuild: Callable[[], CoreSchema | None] | None = None,
+        attempt_rebuild: AttemptRebuild[CoreSchema] | None = None,
     ) -> None:
         self._error_message = error_message
         self._code: PydanticErrorCodes = code
@@ -81,7 +86,7 @@ class MockValSer(Generic[ValSer]):
         *,
         code: PydanticErrorCodes,
         val_or_ser: Literal['validator', 'serializer'],
-        attempt_rebuild: Callable[[], ValSer | None] | None = None,
+        attempt_rebuild: AttemptRebuild[ValSer] | None = None,
     ) -> None:
         self._error_message = error_message
         self._val_or_ser = SchemaValidator if val_or_ser == 'validator' else SchemaSerializer
@@ -99,9 +104,9 @@ class MockValSer(Generic[ValSer]):
         getattr(self._val_or_ser, item)
         raise PydanticUserError(self._error_message, code=self._code)
 
-    def rebuild(self) -> ValSer | None:
+    def rebuild(self, *, parent_namespace_depth: int = 5) -> ValSer | None:
         if self._attempt_rebuild:
-            val_ser = self._attempt_rebuild()
+            val_ser = self._attempt_rebuild(parent_namespace_depth=parent_namespace_depth)
             if val_ser is not None:
                 return val_ser
             else:
@@ -121,9 +126,9 @@ def set_type_adapter_mocks(adapter: TypeAdapter) -> None:
         f' then call `.rebuild()` on the instance.'
     )
 
-    def attempt_rebuild_fn(attr_fn: Callable[[TypeAdapter], T]) -> Callable[[], T | None]:
-        def handler() -> T | None:
-            if adapter.rebuild(raise_errors=False, _parent_namespace_depth=5) is not False:
+    def attempt_rebuild_fn(attr_fn: Callable[[TypeAdapter], T]) -> AttemptRebuild[T]:
+        def handler(*, parent_namespace_depth: int = 5) -> T | None:
+            if adapter.rebuild(raise_errors=False, _parent_namespace_depth=parent_namespace_depth) is not False:
                 return attr_fn(adapter)
             return None
 
@@ -148,21 +153,23 @@ def set_type_adapter_mocks(adapter: TypeAdapter) -> None:
     )
 
 
-def set_model_mocks(cls: type[BaseModel], undefined_name: str = 'all referenced types') -> None:
+def set_model_mocks(cls: type[BaseModel], undefined_name: str | None = None) -> None:
     """Set `__pydantic_core_schema__`, `__pydantic_validator__` and `__pydantic_serializer__` to mock core types on a model.
 
     Args:
         cls: The model class to set the mocks on
         undefined_name: Name of the undefined thing, used in error messages
     """
+    undefined_name = undefined_name if undefined_name is not None else 'all referenced types'
+
     undefined_type_error_message = (
         f'`{cls.__name__}` is not fully defined; you should define {undefined_name},'
         f' then call `{cls.__name__}.model_rebuild()`.'
     )
 
-    def attempt_rebuild_fn(attr_fn: Callable[[type[BaseModel]], T]) -> Callable[[], T | None]:
-        def handler() -> T | None:
-            if cls.model_rebuild(raise_errors=False, _parent_namespace_depth=5) is not False:
+    def attempt_rebuild_fn(attr_fn: Callable[[type[BaseModel]], T]) -> AttemptRebuild[T]:
+        def handler(*, parent_namespace_depth: int = 5) -> T | None:
+            if cls.model_rebuild(raise_errors=False, _parent_namespace_depth=parent_namespace_depth) is not False:
                 return attr_fn(cls)
             return None
 
@@ -187,7 +194,7 @@ def set_model_mocks(cls: type[BaseModel], undefined_name: str = 'all referenced 
     )
 
 
-def set_dataclass_mocks(cls: type[PydanticDataclass], undefined_name: str = 'all referenced types') -> None:
+def set_dataclass_mocks(cls: type[PydanticDataclass], undefined_name: str | None = None) -> None:
     """Set `__pydantic_validator__` and `__pydantic_serializer__` to `MockValSer`s on a dataclass.
 
     Args:
@@ -196,14 +203,16 @@ def set_dataclass_mocks(cls: type[PydanticDataclass], undefined_name: str = 'all
     """
     from ..dataclasses import rebuild_dataclass
 
+    undefined_name = undefined_name if undefined_name is not None else 'all referenced types'
+
     undefined_type_error_message = (
         f'`{cls.__name__}` is not fully defined; you should define {undefined_name},'
         f' then call `pydantic.dataclasses.rebuild_dataclass({cls.__name__})`.'
     )
 
-    def attempt_rebuild_fn(attr_fn: Callable[[type[PydanticDataclass]], T]) -> Callable[[], T | None]:
-        def handler() -> T | None:
-            if rebuild_dataclass(cls, raise_errors=False, _parent_namespace_depth=5) is not False:
+    def attempt_rebuild_fn(attr_fn: Callable[[type[PydanticDataclass]], T]) -> AttemptRebuild[T]:
+        def handler(*, parent_namespace_depth: int = 5) -> T | None:
+            if rebuild_dataclass(cls, raise_errors=False, _parent_namespace_depth=parent_namespace_depth) is not False:
                 return attr_fn(cls)
             return None
 
