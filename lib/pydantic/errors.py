@@ -2,7 +2,6 @@
 
 from __future__ import annotations as _annotations
 
-import re
 from typing import Any, ClassVar, Literal
 
 from typing_extensions import Self
@@ -52,6 +51,7 @@ PydanticErrorCodes = Literal[
     'schema-for-unknown-type',
     'import-error',
     'create-model-field-definitions',
+    'create-model-namespace',
     'validator-instance-method',
     'validator-input-type',
     'root-validator-pre-skip',
@@ -106,11 +106,11 @@ class PydanticUndefinedAnnotation(PydanticErrorMixin, NameError):
     """A subclass of `NameError` raised when handling undefined annotations during `CoreSchema` generation.
 
     Attributes:
-        name: Name of the error.
+        name: Name of the error, of `None` if not available.
         message: Description of the error.
     """
 
-    def __init__(self, name: str, message: str) -> None:
+    def __init__(self, name: str | None, message: str) -> None:
         self.name = name
         super().__init__(message=message, code='undefined-annotation')
 
@@ -124,11 +124,7 @@ class PydanticUndefinedAnnotation(PydanticErrorMixin, NameError):
         Returns:
             Converted `PydanticUndefinedAnnotation` error.
         """
-        try:
-            name = name_error.name  # type: ignore  # python > 3.10
-        except AttributeError:
-            name = re.search(r".*'(.+?)'", str(name_error)).group(1)  # type: ignore[union-attr]
-        return cls(name=name, message=str(name_error))
+        return cls(name=name_error.name, message=str(name_error))
 
 
 class PydanticImportError(PydanticErrorMixin, ImportError):
